@@ -99,7 +99,7 @@ const handleSendOrder = async () => {
                <p class="text-sm font-bold text-foreground">{{ formatMoney(item.product.price * item.quantity) }}</p>
              </div>
              <p class="text-[10px] text-muted-foreground mb-1">{{ formatMoney(item.product.price) }} c/u</p>
-             <input v-model="item.notes" placeholder="Nota: Sin salsa..." class="w-full text-[11px] bg-muted/50 border-none rounded px-2 py-1 focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground" />
+             <input v-model="item.notes" placeholder="Nota..." class="w-full text-[11px] bg-muted/50 border-none rounded px-2 py-1 focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground" />
            </div>
 
            <button @click="cartStore.removeItem(item.product.id)" class="text-muted-foreground hover:text-destructive p-1 transition-colors"><Trash2 class="w-4 h-4" /></button>
