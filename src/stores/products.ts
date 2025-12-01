@@ -5,6 +5,7 @@ import { ref } from 'vue';
 export interface Product {
   id: number;
   name: string;
+  description?: string;
   price: number;
   image_url: string | null;
   category_id: number;

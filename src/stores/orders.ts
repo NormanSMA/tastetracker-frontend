@@ -11,6 +11,7 @@ export interface Order {
   area: string;
   items: Array<{ product_name: string; quantity: number; notes: string }>;
   created_at: string;
+  notes?: string;
 }
 
 export const useOrderStore = defineStore('orders', () => {

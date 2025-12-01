@@ -9,6 +9,7 @@ import ProductList from '@/views/products/ProductList.vue';
 import OrderCreate from '@/views/orders/OrderCreate.vue';
 import OrderList from '@/views/orders/OrderList.vue';
 import UserList from '@/views/users/UserList.vue';
+import UserProfile from '@/views/profile/UserProfile.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -48,6 +49,11 @@ const router = createRouter({
           path: 'users',
           name: 'users',
           component: UserList
+        },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: UserProfile
         },
         {
           path: '',

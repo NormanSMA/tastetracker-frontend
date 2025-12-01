@@ -53,7 +53,7 @@ const openEdit = (user: User) => {
     form.password = ''; // Dejar vacío si no se cambia
     form.role = user.role;
     form.phone = user.phone || '';
-    imagePreview.value = user.photo ? `/storage/${user.photo}` : null; // Ajustar path según backend
+    imagePreview.value = user.photo_url || null;
     isModalOpen.value = true;
 };
 
@@ -104,7 +104,7 @@ const handleDelete = async (id: number) => {
         <div v-for="user in filteredUsers" :key="user.id" class="bg-card border border-border rounded-xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-all animate-entry group relative overflow-hidden">
             
             <div class="w-24 h-24 rounded-full bg-muted border-4 border-background shadow-sm mb-4 overflow-hidden relative group-hover:scale-105 transition-transform">
-                <img v-if="user.photo" :src="user.photo.startsWith('http') ? user.photo : `/storage/${user.photo}`" class="w-full h-full object-cover" />
+                <img v-if="user.photo_url" :src="user.photo_url" class="w-full h-full object-cover" />
                 <div v-else class="w-full h-full flex items-center justify-center text-2xl font-bold text-muted-foreground bg-muted">
                     {{ user.name.charAt(0) }}
                 </div>

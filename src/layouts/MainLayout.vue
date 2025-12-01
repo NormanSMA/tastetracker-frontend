@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import ThemeToggle from '@/components/common/ThemeToggle.vue';
 import api from '@/api/axios';
 import { 
@@ -12,12 +12,18 @@ import {
   LogOut, 
   Menu,
   ClipboardList,
-  Bell
+  Bell,
+  UserCircle2
 } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const isSidebarOpen = ref(true);
+
+// DEBUG TEMPORAL
+console.log('Usuario en Store:', authStore.user);
+console.log('URL Foto:', authStore.user?.photo_url);
 
 const pendingCount = ref(0);
 
@@ -85,14 +91,34 @@ const menuItems = [
 
       <div class="p-4 border-t border-border bg-card/50">
         <div class="flex items-center gap-3 mb-4 px-2" v-if="isSidebarOpen && authStore.user">
-           <div class="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold uppercase shrink-0">
-              {{ authStore.user.name.charAt(0) }}
+           <div class="w-10 h-10 rounded-full overflow-hidden shrink-0 border-2 border-primary/20">
+             <img 
+               v-if="authStore.user.photo_url" 
+               :src="authStore.user.photo_url" 
+               :alt="authStore.user.name"
+               class="w-full h-full object-cover"
+             />
+             <img 
+               v-else
+               :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(authStore.user.name)}&background=random&size=128`"
+               :alt="authStore.user.name"
+               class="w-full h-full object-cover"
+             />
            </div>
            <div class="flex-1 overflow-hidden">
              <p class="text-sm font-medium truncate text-foreground" :title="authStore.user.name">{{ authStore.user.name }}</p>
              <p class="text-xs text-muted-foreground truncate capitalize">{{ authStore.user.role }}</p>
            </div>
         </div>
+        
+        <router-link
+          v-if="isSidebarOpen"
+          to="/profile"
+          class="w-full flex items-center px-3 py-2 rounded-lg border border-border text-muted-foreground hover:bg-primary/10 hover:text-primary hover:border-primary transition-colors mb-2"
+        >
+          <UserCircle2 class="w-5 h-5 shrink-0" />
+          <span class="ml-2">Mi Perfil</span>
+        </router-link>
         
         <button 
           @click="handleLogout"
@@ -135,11 +161,7 @@ const menuItems = [
       </header>
 
       <div class="flex-1 overflow-auto p-4 md:p-6 relative w-full">
-        <router-view v-slot="{ Component }">
-          <transition name="page" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
+        <router-view :key="$route.fullPath" />
       </div>
     </main>
   </div>

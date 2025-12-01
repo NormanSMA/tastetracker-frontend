@@ -26,11 +26,13 @@
 
 ### ✨ Características Principales
 
-- 📊 **Dashboard Interactivo**: Métricas en tiempo real con gráficas y KPIs de ventas, pedidos activos y rendimiento por mesero
+- 📊 **Dashboard Visual**: Gráficos interactivos con `chart.js` y `vue-chartjs` (Ventas semanales y Categorías top)
 - 🛒 **Punto de Venta (POS)**: Interfaz optimizada tipo restaurante con menú visual y ticket en tiempo real
-- 👨‍🍳 **Gestión de Cocina**: Tablero tipo Kanban con filtros por estado (Pendiente → Preparando → Listo → Servido)
+- 👨‍🍳 **Tablero Kanban**: Gestión visual de pedidos por columnas (Pendientes → En Proceso → Por Cobrar)
+- 🧾 **Facturación PDF**: Generación de tickets térmicos usando `html2pdf.js` (con corrección para temas modernos)
 - 🍔 **CRUD de Menú**: Administración completa de productos y categorías con carga de imágenes
-- 👥 **Control de Usuarios**: Gestión de roles (Admin, Mesero, Cocina) con fotos de perfil
+- 👥 **Gestión de Usuarios**: Edición de perfil propio y administración de usuarios con subida de imágenes
+- 🔐 **Seguridad y UX**: Manejo de roles (Vistas ocultas para Cocina/Mesero) y corrección de navegación (Router keys)
 - 🌓 **Modo Oscuro**: Tema adaptable con persistencia en localStorage
 - 🎨 **UX Moderna**: Notificaciones toast, skeletons de carga, transiciones suaves y animaciones
 

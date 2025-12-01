@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import api from '@/api/axios';
-import { DollarSign, ShoppingBag, TrendingUp, Award, Loader2 } from 'lucide-vue-next';
+import { DollarSign, ShoppingBag, TrendingUp, Award, Loader2, BarChart3, PieChart } from 'lucide-vue-next';
+import WeeklySalesChart from '@/components/charts/WeeklySalesChart.vue';
+import TopCategoriesChart from '@/components/charts/TopCategoriesChart.vue';
 
 interface DashboardStats {
   today_sales: number;
   today_orders: number;
   top_products: { name: string; quantity: number }[];
   top_waiters: { name: string; sales: number }[];
+  sales_chart?: { labels: string[]; datasets: any[] };
+  category_chart?: { labels: string[]; datasets: any[] };
 }
 
 const stats = ref<DashboardStats | null>(null);
@@ -43,7 +47,7 @@ onMounted(fetchStats);
 
     <div v-else-if="stats" class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
+        <div v-if="stats.sales_chart" class="bg-card p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
           <div class="p-3 bg-primary/10 rounded-full text-primary">
             <DollarSign class="w-8 h-8" />
           </div>
@@ -61,6 +65,31 @@ onMounted(fetchStats);
             <p class="text-sm text-muted-foreground font-medium">Pedidos Totales</p>
             <h3 class="text-3xl font-bold text-foreground">{{ stats.today_orders }}</h3>
           </div>
+        </div>
+      </div>
+
+      <!-- Gráficos -->
+      <div v-if="stats.sales_chart || stats.category_chart" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Gráfico de Ventas Semanales -->
+        <div v-if="stats.sales_chart" class="bg-card p-6 rounded-xl border border-border shadow-sm">
+          <div class="mb-4 flex items-center gap-2">
+            <div class="p-2 bg-primary/10 rounded-lg text-primary">
+              <BarChart3 class="w-5 h-5" />
+            </div>
+            <h3 class="font-bold text-lg">Ventas de la Semana</h3>
+          </div>
+          <WeeklySalesChart :data="stats.sales_chart" />
+        </div>
+
+        <!-- Gráfico de Categorías -->
+        <div v-if="stats.category_chart" class="bg-card p-6 rounded-xl border border-border shadow-sm">
+          <div class="mb-4 flex items-center gap-2">
+            <div class="p-2 bg-purple-500/10 rounded-lg text-purple-500">
+              <PieChart class="w-5 h-5" />
+            </div>
+            <h3 class="font-bold text-lg">Categorías Más Vendidas</h3>
+          </div>
+          <TopCategoriesChart :data="stats.category_chart" />
         </div>
       </div>
 
@@ -94,7 +123,7 @@ onMounted(fetchStats);
           </div>
         </div>
 
-        <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+        <div v-if="stats.top_waiters" class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
            <div class="p-4 border-b border-border bg-muted/30">
             <h3 class="font-semibold text-foreground flex items-center gap-2">
               <TrendingUp class="w-5 h-5 text-green-500" /> 

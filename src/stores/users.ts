@@ -7,7 +7,7 @@ export interface User {
   name: string;
   email: string;
   role: 'admin' | 'waiter' | 'kitchen' | 'customer';
-  photo: string | null;
+  photo_url: string | null;
   phone: string | null;
   is_active: boolean;
 }

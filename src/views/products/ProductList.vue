@@ -85,15 +85,16 @@ const handleSubmit = async () => {
   try {
     const formData = new FormData();
     formData.append('name', form.name);
-    formData.append('price', form.price);
+    formData.append('price', form.price.toString());
     formData.append('category_id', form.category_id.toString());
-    formData.append('description', form.description); // Asegurar envío
-    formData.append('is_active', '1');
+    if (form.description) formData.append('description', form.description);
     
-    if (form.image) {
+    // LÓGICA BLINDADA: Solo enviar si es un archivo real (nuevo)
+    if (form.image instanceof File) {
       formData.append('image', form.image);
     }
-
+    
+    // El store ya agrega _method: 'PUT' cuando es edición
     if (isEditing.value) {
       await productStore.updateProduct(form.id, formData);
       toast.success('Producto actualizado correctamente');
@@ -101,10 +102,13 @@ const handleSubmit = async () => {
       await productStore.createProduct(formData);
       toast.success('Producto creado correctamente');
     }
+    
     isModalOpen.value = false;
-  } catch (e: any) {
-    console.error(e);
-    toast.error('Error al guardar', { description: 'Verifica los datos o la imagen' });
+  } catch (error: any) {
+    console.error(error);
+    toast.error('Error al guardar producto', {
+      description: error.response?.data?.message || 'Verifica los datos'
+    });
   } finally {
     isSubmitting.value = false;
   }
@@ -129,7 +133,7 @@ const handleDelete = async (id: number) => {
         <h1 class="text-3xl font-bold text-foreground">Menú & Productos</h1>
         <p class="text-muted-foreground">Gestiona el catálogo de tu restaurante</p>
       </div>
-      <button v-if="authStore.isAdmin" @click="openCreateModal" class="bg-primary text-primary-foreground px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-primary/20">
+      <button v-if="authStore.isAdmin || authStore.user?.role === 'kitchen'" @click="openCreateModal" class="bg-primary text-primary-foreground px-4 py-2 rounded-lg flex items-center gap-2 hover:opacity-90 transition-opacity shadow-lg shadow-primary/20">
         <Plus class="w-5 h-5" />
         Nuevo Producto
       </button>
@@ -164,7 +168,7 @@ const handleDelete = async (id: number) => {
           </div>
           <p class="text-sm text-muted-foreground line-clamp-2 h-10 mb-4">{{ product.description || 'Sin descripción' }}</p>
           
-          <div v-if="authStore.isAdmin" class="flex gap-2">
+          <div v-if="authStore.isAdmin || authStore.user?.role === 'kitchen'" class="flex gap-2">
             <button @click="openEditModal(product)" class="flex-1 py-2 rounded-lg border border-input hover:bg-primary/10 hover:text-primary hover:border-primary transition-colors text-sm font-medium flex justify-center items-center gap-2">
                <Pencil class="w-4 h-4" /> Editar
             </button>

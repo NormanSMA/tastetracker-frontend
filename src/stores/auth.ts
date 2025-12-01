@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia';
 import api from '@/api/axios';
 import { ref, computed } from 'vue';
+import type { User } from './users';
 
 export const useAuthStore = defineStore('auth', () => {
-    const user = ref(null);
+    const user = ref<User | null>(null);
     const token = ref(localStorage.getItem('token') || '');
 
     const isAuthenticated = computed(() => !!token.value);
@@ -38,8 +39,15 @@ export const useAuthStore = defineStore('auth', () => {
         if (!token.value) return;
         try {
             const response = await api.get('/user-profile');
-            user.value = response.data.user;
+            console.log('Respuesta completa de /user-profile:', response.data);
+            
+            // Manejar diferentes estructuras de respuesta
+            user.value = response.data.user || response.data.data || response.data;
+            
+            console.log('Usuario guardado en store:', user.value);
+            console.log('photo_url:', user.value?.photo_url);
         } catch (error) {
+            console.error('Error fetching user:', error);
             logout();
         }
     }
