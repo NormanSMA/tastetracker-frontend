@@ -1,56 +1,138 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import {
-  Chart as ChartJS,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-} from 'chart.js'
-import { Doughnut } from 'vue-chartjs'
+import { computed, watch, ref, onMounted } from 'vue';
+import { Doughnut } from 'vue-chartjs';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 
-ChartJS.register(ArcElement, Title, Tooltip, Legend)
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 const props = defineProps<{
   data: {
-    labels?: string[]
-    datasets?: { data?: number[]; backgroundColor?: string[] }[]
-  }
-}>()
+    labels?: string[];
+    datasets?: {
+      data?: number[];
+      backgroundColor?: string[];
+    }[];
+  } | null;
+  range?: 'today' | 'week' | 'month';
+}>();
 
-// Computed data with strict validation
+// Distinct solid corporate colors for categories
+const corporateColors = [
+  '#2563EB', // Blue 600
+  '#DC2626', // Red 600
+  '#16A34A', // Green 600
+  '#EA580C', // Orange 600
+  '#9333EA', // Purple 600
+  '#0891B2', // Cyan 600
+  '#DB2777', // Pink 600
+];
+
 const chartData = computed(() => {
-  // Validación estricta
-  if (!props.data || !props.data.labels || !props.data.datasets || !Array.isArray(props.data.labels)) {
-    return { labels: [], datasets: [] };
+  if (!props.data?.labels?.length || !props.data?.datasets?.[0]?.data?.length) {
+    return {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: [],
+        borderWidth: 3,
+        borderColor: '#ffffff',
+      }]
+    };
   }
+
   return {
     labels: props.data.labels,
-    datasets: props.data.datasets
+    datasets: [{
+      data: props.data.datasets[0].data,
+      backgroundColor: corporateColors.slice(0, props.data.labels.length),
+      borderWidth: 2,
+      borderColor: document.documentElement.classList.contains('dark') ? '#1F2937' : '#ffffff',
+      hoverOffset: 4,
+    }]
   };
 });
 
-// Check if we have valid data to display
 const hasValidData = computed(() => {
-  return chartData.value.labels.length > 0 && chartData.value.datasets.length > 0;
+  return props.data?.labels?.length && props.data?.datasets?.[0]?.data?.length;
 });
 
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      position: 'bottom' as const
-    }
-  }
-}
+// Reactive dark mode state
+const isDark = ref(document.documentElement.classList.contains('dark'));
+
+onMounted(() => {
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'class') {
+        isDark.value = document.documentElement.classList.contains('dark');
+      }
+    });
+  });
+  observer.observe(document.documentElement, { attributes: true });
+});
+
+const chartOptions = computed(() => {
+  const textColor = isDark.value ? '#E5E7EB' : '#374151'; // gray-200 : gray-700
+
+  return {
+    responsive: true,
+    maintainAspectRatio: true,
+    cutout: '70%',
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom' as const,
+        labels: {
+          padding: 20,
+          font: {
+            size: 12,
+            family: "'Inter', sans-serif",
+            weight: '500',
+          },
+          usePointStyle: true,
+          pointStyle: 'circle',
+          color: textColor,
+          generateLabels: (chart: any) => {
+            const data = chart.data;
+            if (data.labels.length && data.datasets.length) {
+              return data.labels.map((label: string, i: number) => {
+                const value = data.datasets[0].data[i];
+                return {
+                  text: `${label}: ${value}`,
+                  fillStyle: data.datasets[0].backgroundColor[i],
+                  hidden: false,
+                  index: i,
+                };
+              });
+            }
+            return [];
+          },
+        },
+      },
+      tooltip: {
+        backgroundColor: isDark.value ? '#1F2937' : '#1E293B',
+        padding: 12,
+        titleColor: '#F8FAFC',
+        bodyColor: '#F1F5F9',
+        cornerRadius: 8,
+      },
+    },
+  } as any;
+});
+
+watch(() => props.data, () => {
+  // Trigger chart update
+}, { deep: true });
+
+watch(() => props.range, () => {
+  // Update colors when range changes
+}, { deep: true });
 </script>
 
 <template>
-  <div class="h-[300px] w-full flex justify-center">
-    <Doughnut v-if="hasValidData" :data="chartData" :options="chartOptions" />
-    <div v-else class="h-full flex items-center justify-center text-muted-foreground">
-      Cargando gráfico...
+  <div class="w-full h-full flex items-center justify-center">
+    <div v-if="hasValidData" class="w-full max-w-[280px]">
+      <Doughnut :data="chartData" :options="chartOptions" />
     </div>
+    <p v-else class="text-muted-foreground text-sm">No hay datos disponibles</p>
   </div>
 </template>

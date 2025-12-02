@@ -101,7 +101,7 @@ const handleDelete = async (id: number) => {
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <div v-for="user in filteredUsers" :key="user.id" class="bg-card border border-border rounded-xl p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-all animate-entry group relative overflow-hidden">
+        <div v-for="user in filteredUsers" :key="user.id" class="bg-card border border-border rounded-lg p-6 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-all animate-entry group relative overflow-hidden">
             
             <div class="w-24 h-24 rounded-full bg-muted border-4 border-background shadow-sm mb-4 overflow-hidden relative group-hover:scale-105 transition-transform">
                 <img v-if="user.photo_url" :src="user.photo_url" class="w-full h-full object-cover" />

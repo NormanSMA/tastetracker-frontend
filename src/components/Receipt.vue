@@ -5,12 +5,14 @@ interface OrderItem {
   quantity: number;
   price: number;
   subtotal: number;
+  notes?: string;
 }
 
 interface Order {
   id: number;
   table_number?: number;
   waiter_name: string;
+  customer_name?: string;
   items: OrderItem[];
   total: number;
   created_at: string;
@@ -38,7 +40,7 @@ const formatDate = (dateString: string) => {
 
 <template>
   <div class="receipt-container">
-    <div id="receipt-content" class="receipt-content">
+    <div id="receipt-content" class="receipt-content" style="background-color: #ffffff; color: #000000;">
       <!-- Cabecera -->
       <div class="text-center">
         <img src="/logo-taste.png" alt="Logo" class="receipt-logo grayscale" />
@@ -55,19 +57,23 @@ const formatDate = (dateString: string) => {
         <p>ORDEN #{{ order.id }}</p>
         <p>MESA: {{ order.table_number || 'N/A' }}</p>
         <p>{{ formatDate(order.created_at) }}</p>
-        <p>Mesero: {{ order.waiter_name }}</p>
+        <p>Mesero: {{ order.waiter_name || 'Sin asignar' }}</p>
+        <p v-if="order.customer_name">Cliente: {{ order.customer_name }}</p>
       </div>
 
       <div class="separator">--------------------------------</div>
 
       <!-- Items Compactos -->
       <div class="items-list">
-        <div v-for="item in order.items" :key="item.id" class="item-row">
-          <div class="item-name">
-            {{ item.quantity }}x {{ item.product_name }}
+        <div v-for="item in order.items" :key="item.id">
+          <div class="item-row">
+            <div class="item-name">
+              {{ item.quantity }}x {{ item.product_name }}
+            </div>
+            <div class="item-dots">................................</div>
+            <div class="item-price">{{ formatCurrency(item.price) }}</div>
           </div>
-          <div class="item-dots">................................</div>
-          <div class="item-price">{{ formatCurrency(item.subtotal) }}</div>
+          <div v-if="item.notes" style="font-size: 10px; font-style: italic;">(Nota: {{ item.notes }})</div>
         </div>
       </div>
 

@@ -198,9 +198,9 @@ El frontend se comunica con el [TasteTracker Backend](https://github.com/NormanS
 
 Este proyecto fue desarrollado por:
 
-- **Hoowerts Gross** - Desarrollo Frontend
-- **Antony Maltez** - Desarrollo Backend & API
-- **Jorge Rodriguez** - Arquitectura & Integración
-- **Norman Acevedo** - Desarrollo Fullstack & UI/UX
+- **Hoowerts Gross**
+- **Antony Maltez**
+- **Jorge Rodriguez**
+- **Norman Acevedo**
 
 ---

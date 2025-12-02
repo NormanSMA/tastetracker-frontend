@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useOrderStore } from '@/stores/orders';
 import { useAuthStore } from '@/stores/auth';
-import { Clock, ChefHat, Utensils, History, Printer, ArrowRight, X } from 'lucide-vue-next';
+import { Clock, ChefHat, Utensils, History, Printer, ArrowRight, X, User } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
-import Receipt from '@/components/Receipt.vue';
-// @ts-ignore
-import html2pdf from 'html2pdf.js';
+import OrderDetailModal from '@/components/orders/OrderDetailModal.vue';
 
 const orderStore = useOrderStore();
 const authStore = useAuthStore();
 const activeTab = ref('board'); 
-const printingOrder = ref<any>(null);
+const selectedOrder = ref<any>(null);
+const isDetailModalOpen = ref(false);
 let intervalId: any;
 
 onMounted(() => {
@@ -27,11 +26,43 @@ const inProcessOrders = computed(() => orderStore.orders.filter(o => o.status ==
 const toPayOrders = computed(() => orderStore.orders.filter(o => o.status === 'served'));
 const historyOrders = computed(() => orderStore.orders.filter(o => o.status === 'paid' || o.status === 'cancelled').slice(0, 20));
 
+const groupedHistory = computed(() => {
+  const groups: Record<string, any[]> = {};
+  
+  historyOrders.value.forEach(order => {
+    let dateKey = (order as any).human_date;
+    
+    // Fallback si no viene human_date
+    if (!dateKey) {
+      const date = new Date(order.created_at);
+      dateKey = date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+      dateKey = dateKey.charAt(0).toUpperCase() + dateKey.slice(1);
+    }
+    
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey]!.push(order);
+  });
+  
+  return groups;
+});
+
 const formatTime = (isoString: string) => {
   if (!isoString) return '';
   const date = new Date(isoString);
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
 };
+
+const formatMoney = (val: number) => {
+  return 'C$ ' + Number(val).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+};
+
+const getCustomerName = (order: any) => order.customer_name || order.guest_name || order.customer?.name || 'Cliente Casual';
+const getWaiterName = (order: any) => order.waiter_name || order.waiter?.name || 'Sin asignar';
+const getAreaName = (order: any) => order.area?.name || order.area_name || 'Salón';
+const formatId = (id: number) => `#${id.toString().padStart(4, '0')}`;
 
 const handleNextStep = async (order: any) => {
   let next = '';
@@ -43,36 +74,15 @@ const handleNextStep = async (order: any) => {
 };
 
 const handlePay = async (order: any) => {
-  try {
-    // 1. PRIMERO COBRAR (Esto es lo importante)
-    await orderStore.updateOrderStatus(order.id, 'paid');
-    toast.success('¡Pedido cobrado correctamente!'); // Éxito inmediato
+  if (!confirm(`¿Confirmar pago de la Mesa ${order.table_number}?`)) return;
 
-    // 2. LUEGO INTENTAR GENERAR PDF
-    try {
-        printingOrder.value = order;
-        await nextTick(); // Esperar a que se renderice el ticket invisible
-        const element = document.getElementById('receipt-content');
-        const opt = {
-            margin: 0,
-            filename: `ticket_${order.id}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            // CORRECCIÓN CRÍTICA: Fondo blanco para evitar error 'oklch'
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-            jsPDF: { unit: 'mm', format: [80, 200], orientation: 'portrait' }
-        };
-        await html2pdf().set(opt).from(element).save();
-    } catch (pdfError) {
-        console.error('Error generando PDF:', pdfError);
-        toast.warning('Cobrado, pero hubo un problema generando el PDF');
-    } finally {
-        // Limpiar siempre
-        setTimeout(() => { printingOrder.value = null; }, 1000);
-    }
-  } catch (apiError) { 
-    // Este catch solo salta si falla el BACKEND (el cobro real)
-    console.error(apiError);
-    toast.error('Error crítico al conectar con el servidor');
+  try {
+    // Solo cambiar estado en backend
+    await orderStore.updateOrderStatus(order.id, 'paid');
+    toast.success(`Pedido de Mesa ${order.table_number} cobrado correctamente`);
+  } catch (error) {
+    console.error(error);
+    toast.error('Error al procesar el cobro');
   }
 };
 
@@ -82,6 +92,16 @@ const handleCancel = async (orderId: number) => {
     await orderStore.updateOrderStatus(orderId, 'cancelled');
     toast.success('Pedido cancelado');
   } catch(e) { toast.error('Error al cancelar'); }
+};
+
+const openHistoryDetails = (order: any) => {
+  selectedOrder.value = order;
+  isDetailModalOpen.value = true;
+};
+
+const closeDetailModal = () => {
+  isDetailModalOpen.value = false;
+  selectedOrder.value = null;
 };
 
 const tabs = [
@@ -119,16 +139,38 @@ const tabs = [
           </div>
           <div class="p-4 flex-1 overflow-y-auto space-y-4 custom-scrollbar">
             <div v-for="order in pendingOrders" :key="order.id" class="bg-card border border-border rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
-              <div class="flex justify-between items-start mb-3">
+              <!-- Cabecera: Mesa y Total -->
+              <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50">
                 <h4 class="font-bold text-lg">Mesa {{ order.table_number }}</h4>
-                <span class="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{{ formatTime(order.created_at) }}</span>
+                <span class="font-bold text-green-600">{{ formatMoney(order.total) }}</span>
               </div>
-              <div class="space-y-1 mb-4">
-                <div v-for="(item, idx) in order.items" :key="idx" class="text-sm flex justify-between">
-                  <span class="font-bold text-primary">{{ item.quantity }}x</span>
-                  <span class="flex-1 mx-2 truncate">{{ item.product_name }}</span>
+              
+              <!-- Cuerpo: Cliente y Mesero -->
+              <div class="space-y-1 mb-3 text-sm">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold" :class="getCustomerName(order) === 'Cliente Casual' ? 'text-muted-foreground' : 'text-foreground'">
+                    {{ getCustomerName(order) }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 text-muted-foreground text-xs">
+                  <User class="w-3 h-3" />
+                  <span>{{ getWaiterName(order) }}</span>
                 </div>
               </div>
+
+              <!-- Lista de Productos -->
+              <div class="space-y-1 mb-4">
+                <div v-for="(item, idx) in order.items" :key="idx" class="text-sm flex justify-between">
+                  <span class="font-bold text-primary w-6">{{ item.quantity }}x</span>
+                  <span class="flex-1 truncate">{{ item.product_name }}</span>
+                </div>
+              </div>
+
+              <!-- Notas de la Orden (Amarillo) -->
+              <div v-if="order.notes" class="mt-2 mb-4 text-xs bg-yellow-100 text-yellow-800 p-2 rounded border border-yellow-200">
+                Nota: {{ order.notes }}
+              </div>
+
               <div class="flex gap-2 mt-auto">
                 <button @click="handleCancel(order.id)" class="p-2 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive hover:text-white transition-colors" title="Cancelar">
                   <X class="w-5 h-5" />
@@ -157,22 +199,41 @@ const tabs = [
               <!-- Indicador de estado -->
               <div class="absolute top-0 left-0 w-1 h-full" :class="order.status === 'preparing' ? 'bg-blue-500' : 'bg-green-500'"></div>
               
-              <div class="flex justify-between items-start mb-3 pl-2">
-                <div>
+              <!-- Cabecera: Mesa y Total -->
+              <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50 pl-2">
+                <div class="flex items-center gap-2">
                   <h4 class="font-bold text-lg">Mesa {{ order.table_number }}</h4>
                   <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded" :class="order.status === 'preparing' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">
                     {{ order.status === 'preparing' ? 'Cocinando' : 'Listo' }}
                   </span>
                 </div>
-                <span class="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">{{ formatTime(order.created_at) }}</span>
+                <span class="font-bold text-green-600">{{ formatMoney(order.total) }}</span>
+              </div>
+
+              <!-- Cuerpo: Cliente y Mesero -->
+              <div class="space-y-1 mb-3 text-sm pl-2">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold" :class="getCustomerName(order) === 'Cliente Casual' ? 'text-muted-foreground' : 'text-foreground'">
+                    {{ getCustomerName(order) }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 text-muted-foreground text-xs">
+                  <User class="w-3 h-3" />
+                  <span>{{ getWaiterName(order) }}</span>
+                </div>
               </div>
               
+              <!-- Lista de Productos -->
               <div class="space-y-1 mb-4 pl-2">
                 <div v-for="(item, idx) in order.items" :key="idx" class="text-sm flex justify-between">
-                  <span class="font-bold text-primary">{{ item.quantity }}x</span>
-                  <span class="flex-1 mx-2 truncate">{{ item.product_name }}</span>
+                  <span class="font-bold text-primary w-6">{{ item.quantity }}x</span>
+                  <span class="flex-1 truncate">{{ item.product_name }}</span>
                 </div>
-                <p v-if="order.notes" class="text-xs text-orange-500 italic mt-2 border-t border-dashed pt-1">Nota: {{ order.notes }}</p>
+              </div>
+
+              <!-- Notas de la Orden (Amarillo) -->
+              <div v-if="order.notes" class="mt-2 mb-4 ml-2 text-xs bg-yellow-100 text-yellow-800 p-2 rounded border border-yellow-200">
+                Nota: {{ order.notes }}
               </div>
 
               <div class="pl-2 mt-auto">
@@ -200,21 +261,38 @@ const tabs = [
           </div>
           <div class="p-4 flex-1 overflow-y-auto space-y-4 custom-scrollbar">
             <div v-for="order in toPayOrders" :key="order.id" class="bg-card border border-border rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
-              <div class="flex justify-between items-start mb-3">
+              <!-- Cabecera: Mesa y Total -->
+              <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50">
                 <h4 class="font-bold text-lg">Mesa {{ order.table_number }}</h4>
-                <div class="text-right">
-                  <p class="font-bold text-lg">C$ {{ order.total }}</p>
-                  <span class="text-xs text-muted-foreground">{{ order.waiter }}</span>
+                <span class="font-bold text-green-600">{{ formatMoney(order.total) }}</span>
+              </div>
+
+              <!-- Cuerpo: Cliente y Mesero -->
+              <div class="space-y-1 mb-3 text-sm">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold" :class="getCustomerName(order) === 'Cliente Casual' ? 'text-muted-foreground' : 'text-foreground'">
+                    {{ getCustomerName(order) }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-2 text-muted-foreground text-xs">
+                  <User class="w-3 h-3" />
+                  <span>{{ getWaiterName(order) }}</span>
                 </div>
               </div>
               
+              <!-- Resumen Items -->
               <div class="space-y-1 mb-4 bg-muted/20 p-2 rounded text-xs text-muted-foreground">
-                <p>{{ order.items.length }} items en la orden</p>
-                <p>Esperando pago...</p>
+                <p class="font-medium">{{ order.items.length }} items en la orden</p>
+                <p class="text-purple-600 font-bold animate-pulse">Esperando pago...</p>
+              </div>
+
+              <!-- Notas de la Orden (Amarillo) -->
+              <div v-if="order.notes" class="mb-4 text-xs bg-yellow-100 text-yellow-800 p-2 rounded border border-yellow-200">
+                Nota: {{ order.notes }}
               </div>
 
               <button v-if="authStore.user?.role !== 'kitchen'" @click="handlePay(order)" class="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-lg py-3 font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20">
-                <Printer class="w-4 h-4" /> Cobrar y Descargar PDF
+                <Printer class="w-4 h-4" /> Cobrar Pedido
               </button>
               <div v-else class="text-center py-2 text-sm text-muted-foreground italic bg-muted/20 rounded-lg">
                 Solo Caja puede cobrar
@@ -230,24 +308,73 @@ const tabs = [
     </div>
 
     <!-- VISTA HISTORIAL -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-entry overflow-y-auto p-1">
-      <div v-for="order in historyOrders" :key="order.id" class="bg-card border border-border rounded-xl shadow-sm p-4 opacity-75 hover:opacity-100 transition-opacity">
-        <div class="flex justify-between items-center mb-2">
-          <span class="font-bold">Mesa {{ order.table_number }}</span>
-          <span class="text-xs px-2 py-1 rounded font-bold uppercase" :class="order.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-            {{ order.status === 'paid' ? 'Pagado' : 'Cancelado' }}
-          </span>
-        </div>
-        <p class="text-sm text-muted-foreground mb-2">{{ formatTime(order.created_at) }}</p>
-        <p class="font-bold text-right">Total: C$ {{ order.total }}</p>
-      </div>
-      <div v-if="historyOrders.length === 0" class="col-span-full text-center py-20 opacity-50">
+    <div v-else class="flex-1 overflow-y-auto p-4 animate-entry custom-scrollbar">
+      <div v-if="Object.keys(groupedHistory).length === 0" class="text-center py-20 opacity-50">
         <p>No hay historial reciente</p>
+      </div>
+
+      <div v-for="(orders, date) in groupedHistory" :key="date" class="mb-8">
+        <h3 class="text-lg font-medium text-muted-foreground mb-4 sticky top-0 bg-background/95 backdrop-blur py-2 z-10 border-b border-border/50 capitalize">
+          {{ date }}
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div 
+            v-for="order in orders" 
+            :key="order.id" 
+            @click="openHistoryDetails(order)"
+            class="bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group flex flex-col overflow-hidden"
+          >
+            <!-- Encabezado -->
+            <div class="p-3 border-b border-border/50 flex justify-between items-center bg-muted/20">
+              <span class="font-bold text-foreground">
+                {{ formatId(order.id) }} - Mesa {{ order.table_number }}
+              </span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border"
+                :class="getAreaName(order).toLowerCase().includes('terraza') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-blue-100 text-blue-700 border-blue-200'">
+                {{ getAreaName(order) }}
+              </span>
+            </div>
+
+            <!-- Cuerpo -->
+            <div class="p-3 space-y-3 flex-1">
+              <div class="flex justify-between items-start">
+                <div class="space-y-1">
+                  <p class="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock class="w-3 h-3" /> {{ formatTime(order.created_at) }}
+                  </p>
+                  <p class="text-sm font-medium flex items-center gap-1.5 text-foreground/80">
+                    <User class="w-3.5 h-3.5 text-muted-foreground" />
+                    {{ getWaiterName(order) }}
+                  </p>
+                </div>
+                <div class="text-right">
+                  <p class="text-xl font-bold" :class="order.status === 'paid' ? 'text-green-600' : 'text-foreground'">
+                    {{ formatMoney(order.total) }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pie -->
+            <div class="p-3 pt-0 flex justify-between items-center mt-auto">
+              <span class="text-xs px-2 py-1 rounded font-bold uppercase" :class="order.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                {{ order.status === 'paid' ? 'Pagado' : 'Cancelado' }}
+              </span>
+              <span class="text-xs text-blue-500 group-hover:underline font-medium">
+                Click para ver detalle
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Componente de Ticket (oculto) -->
-    <Receipt v-if="printingOrder" :order="printingOrder" />
+    <!-- Modal de Detalles del Pedido -->
+    <OrderDetailModal 
+      :order="selectedOrder" 
+      :is-open="isDetailModalOpen" 
+      @close="closeDetailModal" 
+    />
   </div>
 </template>
 

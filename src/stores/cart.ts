@@ -98,10 +98,8 @@ export const useCartStore = defineStore('cart', () => {
         }))
       };
 
-      // Agregar guest_name solo si hay un customerName
-      if (customerName.value) {
-        payload.guest_name = customerName.value;
-      }
+      // Agregar guest_name (siempre enviar, aunque sea string vacío o null si el backend lo permite)
+      payload.guest_name = customerName.value || null;
 
       await api.post('/orders', payload);
       clearCart();

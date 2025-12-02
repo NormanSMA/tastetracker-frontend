@@ -9,10 +9,8 @@ import {
   ShoppingBag, 
   UtensilsCrossed, 
   Users, 
-  LogOut, 
-  Menu,
+  LogOut,
   ClipboardList,
-  Bell,
   UserCircle2
 } from 'lucide-vue-next';
 
@@ -67,7 +65,7 @@ const menuItems = [
   <div class="min-h-screen bg-background flex">
     
     <aside 
-      class="bg-card border-r border-border transition-all duration-300 flex flex-col fixed md:relative z-20 h-full"
+      class="bg-card border-r border-border transition-all duration-300 flex flex-col h-screen sticky top-0"
       :class="isSidebarOpen ? 'w-64' : 'w-20'"
     >
       <div class="h-16 flex items-center justify-center border-b border-border">
@@ -132,31 +130,45 @@ const menuItems = [
     </aside>
 
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-      <header class="h-16 bg-card border-b border-border flex items-center px-6 justify-between shrink-0 z-10 relative">
-        <button @click="isSidebarOpen = !isSidebarOpen" class="md:hidden p-2 rounded-md hover:bg-muted text-muted-foreground">
-          <Menu class="w-6 h-6" />
-        </button>
-        
-        <div class="ml-auto flex items-center gap-3">
-           <button 
-             @click="goToKitchen"
-             class="relative p-2 rounded-full hover:bg-muted text-foreground transition-colors mr-1" 
-             title="Ir a Cocina (Pedidos Pendientes)"
-           >
-             <Bell class="w-5 h-5" />
-             <span 
-               v-if="pendingCount > 0" 
-               class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-sm border border-background animate-pulse"
-             >
-               {{ pendingCount }}
-             </span>
-           </button>
+      <header class="bg-card border-b border-border shadow-sm px-6 py-4 flex justify-between items-center z-10">
+        <!-- Saludo a la Izquierda (solo en Dashboard) -->
+        <div v-if="route.path === '/dashboard'" class="flex flex-col">
+          <h2 class="text-xl font-bold text-foreground">
+            Hola Bienvenido, <span class="text-primary">{{ authStore.user?.name || 'Usuario' }}</span>
+          </h2>
+          <p class="text-xs text-muted-foreground font-medium">
+            {{ new Date().toLocaleDateString('es-NI', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+          </p>
+        </div>
 
-           <ThemeToggle />
+        <!-- Solo Fecha (en otras páginas) -->
+        <div v-else class="flex items-center">
+          <p class="text-sm text-muted-foreground font-medium">
+            {{ new Date().toLocaleDateString('es-NI', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+          </p>
+        </div>
 
-           <div class="font-medium text-foreground hidden sm:block ml-2 border-l border-border pl-4" v-if="authStore.user">
-              Hola, {{ authStore.user.name }}
-           </div>
+        <!-- Iconos a la Derecha -->
+        <div class="flex items-center gap-3">
+          <!-- Theme Toggle -->
+          <ThemeToggle />
+
+          <!-- Notificaciones / Ir a Cocina -->
+          <button 
+            @click="goToKitchen"
+            class="p-2 text-muted-foreground hover:text-foreground transition-colors relative"
+            title="Ir a Cocina (Pedidos Pendientes)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span 
+              v-if="pendingCount > 0" 
+              class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] flex items-center justify-center shadow-sm border border-background animate-pulse"
+            >
+              {{ pendingCount }}
+            </span>
+          </button>
         </div>
       </header>
 

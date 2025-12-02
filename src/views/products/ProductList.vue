@@ -154,29 +154,29 @@ const handleDelete = async (id: number) => {
       <Loader2 class="w-10 h-10 text-primary animate-spin" />
     </div>
 
-    <div v-else-if="filteredProducts.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <div v-for="(product, index) in filteredProducts" :key="product.id" class="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-all duration-300 animate-entry" :style="{ animationDelay: `${index * 50}ms` }">
-        <div class="h-48 bg-muted relative overflow-hidden">
+    <div v-else-if="filteredProducts.length > 0" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div v-for="(product, index) in filteredProducts" :key="product.id" class="group bg-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-all duration-300 animate-entry" :style="{ animationDelay: `${index * 50}ms` }">
+        <div class="h-32 bg-muted relative overflow-hidden">
           <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          <div v-else class="w-full h-full flex items-center justify-center text-muted-foreground"><Filter class="w-12 h-12 opacity-20" /></div>
-          <div class="absolute top-2 right-2 bg-background/90 backdrop-blur px-2 py-1 rounded text-xs font-bold shadow-sm">{{ product.category_name }}</div>
+          <div v-else class="w-full h-full flex items-center justify-center text-muted-foreground"><Filter class="w-8 h-8 opacity-20" /></div>
+          <div class="absolute top-2 right-2 bg-background/90 backdrop-blur px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">{{ product.category_name }}</div>
         </div>
-        <div class="p-4">
-          <div class="flex justify-between items-start mb-2">
-            <h3 class="font-bold text-lg truncate pr-2">{{ product.name }}</h3>
-            <span class="font-bold text-primary">{{ formatCurrency(product.price) }}</span>
+        <div class="p-3">
+          <div class="flex justify-between items-start mb-1">
+            <h3 class="font-bold text-sm truncate pr-2">{{ product.name }}</h3>
+            <span class="font-bold text-primary text-xs">{{ formatCurrency(product.price) }}</span>
           </div>
-          <p class="text-sm text-muted-foreground line-clamp-2 h-10 mb-4">{{ product.description || 'Sin descripción' }}</p>
+          <p class="text-xs text-muted-foreground line-clamp-2 h-8 mb-3">{{ product.description || 'Sin descripción' }}</p>
           
           <div v-if="authStore.isAdmin || authStore.user?.role === 'kitchen'" class="flex gap-2">
-            <button @click="openEditModal(product)" class="flex-1 py-2 rounded-lg border border-input hover:bg-primary/10 hover:text-primary hover:border-primary transition-colors text-sm font-medium flex justify-center items-center gap-2">
-               <Pencil class="w-4 h-4" /> Editar
+            <button @click="openEditModal(product)" class="flex-1 py-1.5 rounded border border-input hover:bg-primary/10 hover:text-primary hover:border-primary transition-colors text-xs font-medium flex justify-center items-center gap-1">
+               <Pencil class="w-3 h-3" /> Editar
             </button>
-            <button @click="handleDelete(product.id)" class="px-3 py-2 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors">
-               <Trash2 class="w-4 h-4" />
+            <button @click="handleDelete(product.id)" class="px-2 py-1.5 rounded border border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors">
+               <Trash2 class="w-3 h-3" />
             </button>
           </div>
-          <div v-else class="text-center text-xs text-muted-foreground italic mt-2">Solo lectura</div>
+          <div v-else class="text-center text-[10px] text-muted-foreground italic mt-2">Solo lectura</div>
         </div>
       </div>
     </div>
