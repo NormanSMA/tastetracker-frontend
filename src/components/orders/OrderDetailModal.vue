@@ -3,7 +3,7 @@ import { X, Calendar, User, DollarSign } from 'lucide-vue-next';
 
 interface OrderItem {
   product_name: string;
-  price: number;
+  unit_price: number;
   quantity: number;
   notes?: string;
 }
@@ -20,6 +20,10 @@ interface Order {
   waiter?: { name: string };
   waiter_name?: string;
   guest_name?: string;
+  // Nuevos campos enriquecidos del backend
+  customer_name?: string;
+  table_display?: string;
+  formatted_total?: string;
 }
 
 const props = defineProps<{
@@ -48,6 +52,7 @@ const formatDate = (isoString: string) => {
 // Helper getters
 const getWaiterName = () => props.order?.waiter?.name || props.order?.waiter_name || 'N/A';
 const getAreaName = () => props.order?.area?.name || props.order?.area_name || 'N/A';
+const getCustomerName = () => props.order?.customer_name || 'N/A';
 </script>
 
 <template>
@@ -55,8 +60,7 @@ const getAreaName = () => props.order?.area?.name || props.order?.area_name || '
     <Transition name="modal">
       <div v-if="isOpen && order" class="fixed inset-0 z-50 overflow-y-auto" @click="emit('close')">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-          <!-- Debug: Log order data -->
-          <div class="hidden">{{ console.log('ORDER DATA:', JSON.stringify(order, null, 2)) }}</div>
+
           
           <!-- Backdrop -->
           <div class="fixed inset-0 transition-opacity bg-black/50"></div>
@@ -69,7 +73,7 @@ const getAreaName = () => props.order?.area?.name || props.order?.area_name || '
             <!-- Header -->
             <div class="flex items-center justify-between p-5 border-b border-border">
               <h3 class="text-lg font-bold text-foreground">
-                Pedido #{{ order.id }} - Mesa {{ order.table_number }}
+                Pedido #{{ order.id }} - {{ order.table_display || `Mesa ${order.table_number}` }}
               </h3>
               <button 
                 @click="emit('close')" 
@@ -107,9 +111,9 @@ const getAreaName = () => props.order?.area?.name || props.order?.area_name || '
                     <p class="text-xs text-muted-foreground">Ubicación</p>
                     <p class="font-bold text-foreground">{{ getAreaName() }}</p>
                   </div>
-                  <div v-if="order.guest_name" class="text-right">
+                  <div v-if="getCustomerName() !== 'N/A'" class="text-right">
                     <p class="text-xs text-muted-foreground">Cliente</p>
-                    <p class="font-medium text-foreground">{{ order.guest_name }}</p>
+                    <p class="font-medium text-foreground">{{ getCustomerName() }}</p>
                   </div>
                 </div>
               </div>
@@ -136,7 +140,7 @@ const getAreaName = () => props.order?.area?.name || props.order?.area_name || '
                         <td class="px-3 py-2 text-xs text-muted-foreground italic">
                           {{ item.notes || '-' }}
                         </td>
-                        <td class="px-3 py-2 text-right font-bold text-foreground">{{ formatMoney(item.price) }}</td>
+                        <td class="px-3 py-2 text-right font-bold text-foreground">{{ formatMoney(item.unit_price) }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -152,7 +156,7 @@ const getAreaName = () => props.order?.area?.name || props.order?.area_name || '
                     </div>
                     <div>
                       <p class="text-xs text-muted-foreground font-bold uppercase">Total Pagado</p>
-                      <p class="text-2xl font-bold text-primary">{{ formatMoney(order.total) }}</p>
+                      <p class="text-2xl font-bold text-primary">{{ order.formatted_total || formatMoney(order.total) }}</p>
                     </div>
                   </div>
                   <div 

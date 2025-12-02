@@ -12,6 +12,10 @@ export interface Order {
   items: Array<{ product_name: string; quantity: number; notes: string }>;
   created_at: string;
   notes?: string;
+  // Nuevos campos enriquecidos del backend
+  customer_name?: string; // Nombre unificado del cliente (registrado o invitado)
+  table_display?: string; // Mesa formateada con prefijo (ej: "T#5", "S#2")
+  formatted_total?: string; // Total formateado con moneda (ej: "C$ 150.00")
 }
 
 export const useOrderStore = defineStore('orders', () => {

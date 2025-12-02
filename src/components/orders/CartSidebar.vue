@@ -1,14 +1,43 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useCartStore } from '@/stores/cart';
-import { ShoppingCart, Plus, Minus, Trash2, Loader2, CreditCard, ChevronDown } from 'lucide-vue-next';
+import { ShoppingCart, Plus, Minus, Trash2, Loader2, CreditCard } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
 const cartStore = useCartStore();
+const selectedTableNumber = ref<number | null>(null);
 
 onMounted(() => {
   cartStore.fetchAreas();
 });
+
+// Computed properties
+const selectedArea = computed(() => 
+  cartStore.areas.find(a => a.id === cartStore.areaId)
+);
+
+const availableTables = computed(() => {
+  if (!selectedArea.value?.total_tables) return [];
+  return Array.from({ length: selectedArea.value.total_tables }, (_, i) => i + 1);
+});
+
+const tableDisplay = computed(() => {
+  if (!selectedTableNumber.value || !selectedArea.value) return '';
+  const prefix = selectedArea.value.prefix || '';
+  return `${selectedArea.value.name} ${prefix}#${selectedTableNumber.value}`;
+});
+
+// Functions
+function selectArea(areaId: number) {
+  cartStore.areaId = areaId;
+  selectedTableNumber.value = null;
+  cartStore.tableNumber = '';
+}
+
+function selectTable(num: number) {
+  selectedTableNumber.value = num;
+  cartStore.tableNumber = num.toString();
+}
 
 const formatMoney = (val: number) => 'C$ ' + Number(val).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 
@@ -17,6 +46,10 @@ const handleSendOrder = async () => {
     toast.warning('Falta información', { description: 'Selecciona la Zona y el Número de Mesa' });
     return;
   }
+  
+  // DEBUG: Verificar que el nombre del cliente se envía
+  console.log('Enviando guest_name:', cartStore.customerName);
+  
   try {
     await cartStore.sendOrder();
     toast.success('Pedido enviado a cocina', { description: `Mesa ${cartStore.tableNumber}` });
@@ -27,15 +60,29 @@ const handleSendOrder = async () => {
 </script>
 
 <template>
-  <div class="w-full md:w-80 lg:w-96 bg-card border border-border rounded-xl flex flex-col shadow-xl h-full">
-    <div class="p-4 border-b border-border bg-primary/5">
-      <h2 class="font-bold text-lg flex items-center gap-2 text-foreground">
-        <ShoppingCart class="w-5 h-5 text-primary" /> Ticket Actual
-      </h2>
-      <div class="text-xs text-muted-foreground mt-1">{{ cartStore.itemCount }} items agregados</div>
+  <div class="w-full md:w-80 lg:w-96 bg-card border border-border rounded-xl flex flex-col shadow-lg h-full">
+    <!-- HEADER: Título + Input Cliente -->
+    <div class="p-3 border-b border-border bg-primary/5 space-y-2">
+      <div class="flex items-center justify-between">
+        <h2 class="font-bold text-lg flex items-center gap-2 text-foreground">
+          <ShoppingCart class="w-5 h-5 text-primary" /> Ticket Actual
+        </h2>
+        <div class="text-xs text-muted-foreground">{{ cartStore.itemCount }} items</div>
+      </div>
+      
+      <!-- INPUT CLIENTE EN HEADER -->
+      <div>
+        <label class="text-[10px] font-bold uppercase text-muted-foreground tracking-wide block mb-1">Cliente (Opcional)</label>
+        <input 
+          v-model="cartStore.customerName" 
+          placeholder="Nombre del cliente..." 
+          class="w-full px-3 py-1.5 text-xs border border-input rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none bg-muted/50 text-foreground placeholder:text-muted-foreground transition-colors"
+        />
+      </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+    <!-- BODY: Lista de Productos (MAXIMIZADO) -->
+    <div class="flex-1 min-h-0 overflow-y-auto p-3 space-y-2 custom-scrollbar">
       <div v-if="cartStore.items.length === 0" class="h-full flex flex-col items-center justify-center text-muted-foreground text-center opacity-50 space-y-4">
         <div class="w-20 h-20 bg-muted rounded-full flex items-center justify-center">
           <ShoppingCart class="w-10 h-10" />
@@ -81,47 +128,64 @@ const handleSendOrder = async () => {
       </div>
     </div>
 
-    <div class="p-4 border-t border-border bg-card shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-10">
-      <div class="grid grid-cols-3 gap-2 mb-4">
-        <div class="col-span-1 space-y-1">
-          <label class="text-[10px] font-bold uppercase text-muted-foreground">Zona</label>
-          <div class="relative">
-            <select 
-              v-model="cartStore.areaId" 
-              class="w-full pl-3 pr-8 py-2 text-sm border border-input rounded-xl focus:ring-2 focus:ring-primary/20 outline-none bg-card shadow-sm h-[38px] appearance-none cursor-pointer text-foreground"
-            >
-              <option v-for="area in cartStore.areas" :key="area.id" :value="area.id">{{ area.name }}</option>
-            </select>
-            <ChevronDown class="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-          </div>
-        </div>
-        <div class="col-span-1 space-y-1">
-          <label class="text-[10px] font-bold uppercase text-muted-foreground">Mesa #</label>
-          <input 
-            v-model="cartStore.tableNumber" 
-            placeholder="Ej: 4" 
-            class="w-full px-3 py-2 text-sm border border-input rounded-xl focus:ring-2 focus:ring-primary/20 outline-none bg-card shadow-sm h-[38px]" 
-          />
-        </div>
-        <div class="col-span-1 space-y-1">
-          <label class="text-[10px] font-bold uppercase text-muted-foreground">Cliente</label>
-          <input 
-            v-model="cartStore.customerName" 
-            placeholder="Opcional" 
-            class="w-full px-3 py-2 text-sm border border-input rounded-xl focus:ring-2 focus:ring-primary/20 outline-none bg-card shadow-sm h-[38px]" 
-          />
-        </div>
-      </div>
+    <!-- FOOTER: Controles Compactos -->
+    <div class="p-2.5 border-t border-border bg-card z-10 space-y-2">
       
-      <div class="flex justify-between items-end mb-4 pb-4 border-b border-border">
-        <span class="text-muted-foreground text-sm">Total a Pagar</span>
-        <span class="text-3xl font-bold text-primary">{{ formatMoney(cartStore.total) }}</span>
+      <!-- ZONA - TABS COMPACTOS -->
+      <div>
+        <label class="text-[9px] font-bold uppercase text-muted-foreground tracking-wide block mb-1">Zona</label>
+        <div class="flex gap-1 bg-muted/30 p-0.5 rounded-lg overflow-x-auto">
+          <button 
+            v-for="area in cartStore.areas" 
+            :key="area.id"
+            @click="selectArea(area.id)"
+            class="shrink-0 px-3 py-1 rounded-md font-semibold text-[10px] transition-all"
+            :class="cartStore.areaId === area.id 
+              ? 'bg-primary text-primary-foreground shadow-sm' 
+              : 'text-muted-foreground hover:text-foreground hover:bg-background/50'"
+          >
+            {{ area.name }}
+          </button>
+        </div>
       </div>
 
+      <!-- MESA - BOTONES COMPACTOS CON SCROLL -->
+      <div v-if="selectedArea && availableTables.length > 0">
+        <label class="text-[9px] font-bold uppercase text-muted-foreground tracking-wide block mb-1">
+          Mesa {{ selectedArea.prefix ? `(${selectedArea.prefix}#)` : '' }}
+        </label>
+        <!-- CONTENEDOR CON ALTURA MÁXIMA Y SCROLL -->
+        <div class="max-h-16 overflow-y-auto custom-scrollbar bg-muted/20 p-0.5 rounded-lg">
+          <div class="grid grid-cols-8 gap-0.5">
+            <button 
+              v-for="num in availableTables" 
+              :key="num"
+              @click="selectTable(num)"
+              class="h-7 w-7 rounded font-bold text-[9px] transition-all border flex items-center justify-center"
+              :class="selectedTableNumber === num 
+                ? 'bg-primary text-primary-foreground border-primary shadow-sm' 
+                : 'bg-background text-foreground border-border hover:border-primary/50 hover:bg-muted'"
+            >
+              {{ num }}
+            </button>
+          </div>
+        </div>
+        <p v-if="tableDisplay" class="text-[9px] text-primary font-semibold mt-1">
+          {{ tableDisplay }}
+        </p>
+      </div>
+      
+      <!-- TOTAL -->
+      <div class="flex justify-between items-center mb-2 pb-2 border-b border-border">
+        <span class="text-muted-foreground text-[10px] font-medium uppercase">Total</span>
+        <span class="text-xl font-bold text-primary">{{ formatMoney(cartStore.total) }}</span>
+      </div>
+
+      <!-- BOTÓN CONFIRMAR -->
       <button 
         @click="handleSendOrder" 
         :disabled="cartStore.items.length === 0 || cartStore.isSending" 
-        class="w-full bg-primary text-primary-foreground py-3.5 rounded-xl font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-lg shadow-primary/25"
+        class="w-full bg-primary text-primary-foreground py-2 rounded-lg font-bold text-xs hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
       >
         <Loader2 v-if="cartStore.isSending" class="w-5 h-5 animate-spin" />
         <CreditCard v-else class="w-5 h-5" />

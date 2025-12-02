@@ -5,12 +5,22 @@ import { useAuthStore } from '@/stores/auth';
 import { Clock, ChefHat, Utensils, History, Printer, ArrowRight, X, User } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import OrderDetailModal from '@/components/orders/OrderDetailModal.vue';
+import BaseModal from '@/components/common/BaseModal.vue';
 
 const orderStore = useOrderStore();
 const authStore = useAuthStore();
 const activeTab = ref('board'); 
 const selectedOrder = ref<any>(null);
 const isDetailModalOpen = ref(false);
+
+// Modal de confirmación de cobro
+const showConfirmModal = ref(false);
+const orderToPay = ref<any>(null);
+
+// Modal de confirmación de cancelación
+const showCancelModal = ref(false);
+const orderToCancel = ref<any>(null);
+
 let intervalId: any;
 
 onMounted(() => {
@@ -59,7 +69,13 @@ const formatMoney = (val: number) => {
   return 'C$ ' + Number(val).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 };
 
-const getCustomerName = (order: any) => order.customer_name || order.guest_name || order.customer?.name || 'Cliente Casual';
+// PRIORIDAD: guest_name > customer?.name > customer_name > fallback
+const getCustomerName = (order: any) => {
+  const name = order.guest_name || order.customer?.name || order.customer_name || 'Cliente Casual';
+  // DEBUG temporal para verificar
+  if (order.guest_name) console.log('Cliente detectado (guest_name):', order.guest_name);
+  return name;
+};
 const getWaiterName = (order: any) => order.waiter_name || order.waiter?.name || 'Sin asignar';
 const getAreaName = (order: any) => order.area?.name || order.area_name || 'Salón';
 const formatId = (id: number) => `#${id.toString().padStart(4, '0')}`;
@@ -73,25 +89,51 @@ const handleNextStep = async (order: any) => {
   if (next) await orderStore.updateOrderStatus(order.id, next);
 };
 
-const handlePay = async (order: any) => {
-  if (!confirm(`¿Confirmar pago de la Mesa ${order.table_number}?`)) return;
+const handlePay = (order: any) => {
+  orderToPay.value = order;
+  showConfirmModal.value = true;
+};
 
+const confirmPayment = async () => {
+  if (!orderToPay.value) return;
+  
   try {
-    // Solo cambiar estado en backend
-    await orderStore.updateOrderStatus(order.id, 'paid');
-    toast.success(`Pedido de Mesa ${order.table_number} cobrado correctamente`);
+    await orderStore.updateOrderStatus(orderToPay.value.id, 'paid');
+    toast.success(`Pedido de Mesa ${orderToPay.value.table_display || orderToPay.value.table_number} cobrado correctamente`);
+    showConfirmModal.value = false;
+    orderToPay.value = null;
   } catch (error) {
     console.error(error);
     toast.error('Error al procesar el cobro');
   }
 };
 
-const handleCancel = async (orderId: number) => {
-  if (!confirm('¿Estás seguro de que deseas cancelar este pedido? Esta acción no se puede deshacer.')) return;
+const cancelPayment = () => {
+  showConfirmModal.value = false;
+  orderToPay.value = null;
+};
+
+const handleCancel = (order: any) => {
+  orderToCancel.value = order;
+  showCancelModal.value = true;
+};
+
+const confirmCancel = async () => {
+  if (!orderToCancel.value) return;
+  
   try {
-    await orderStore.updateOrderStatus(orderId, 'cancelled');
+    await orderStore.updateOrderStatus(orderToCancel.value.id, 'cancelled');
     toast.success('Pedido cancelado');
-  } catch(e) { toast.error('Error al cancelar'); }
+    showCancelModal.value = false;
+    orderToCancel.value = null;
+  } catch(e) {
+    toast.error('Error al cancelar');
+  }
+};
+
+const closeCancelModal = () => {
+  showCancelModal.value = false;
+  orderToCancel.value = null;
 };
 
 const openHistoryDetails = (order: any) => {
@@ -141,8 +183,8 @@ const tabs = [
             <div v-for="order in pendingOrders" :key="order.id" class="bg-card border border-border rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
               <!-- Cabecera: Mesa y Total -->
               <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50">
-                <h4 class="font-bold text-lg">Mesa {{ order.table_number }}</h4>
-                <span class="font-bold text-green-600">{{ formatMoney(order.total) }}</span>
+                <h4 class="font-bold text-lg">{{ order.table_display || `Mesa ${order.table_number}` }}</h4>
+                <span class="font-bold text-green-600">{{ order.formatted_total || formatMoney(order.total) }}</span>
               </div>
               
               <!-- Cuerpo: Cliente y Mesero -->
@@ -172,7 +214,7 @@ const tabs = [
               </div>
 
               <div class="flex gap-2 mt-auto">
-                <button @click="handleCancel(order.id)" class="p-2 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive hover:text-white transition-colors" title="Cancelar">
+                <button @click="handleCancel(order)" class="p-2 rounded-lg border border-destructive/30 text-destructive hover:bg-destructive hover:text-white transition-colors" title="Cancelar">
                   <X class="w-5 h-5" />
                 </button>
                 <button @click="handleNextStep(order)" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg py-2 font-bold text-sm transition-colors flex items-center justify-center gap-2">
@@ -202,12 +244,12 @@ const tabs = [
               <!-- Cabecera: Mesa y Total -->
               <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50 pl-2">
                 <div class="flex items-center gap-2">
-                  <h4 class="font-bold text-lg">Mesa {{ order.table_number }}</h4>
+                  <h4 class="font-bold text-lg">{{ order.table_display || `Mesa ${order.table_number}` }}</h4>
                   <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded" :class="order.status === 'preparing' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">
                     {{ order.status === 'preparing' ? 'Cocinando' : 'Listo' }}
                   </span>
                 </div>
-                <span class="font-bold text-green-600">{{ formatMoney(order.total) }}</span>
+                <span class="font-bold text-green-600">{{ order.formatted_total || formatMoney(order.total) }}</span>
               </div>
 
               <!-- Cuerpo: Cliente y Mesero -->
@@ -263,8 +305,8 @@ const tabs = [
             <div v-for="order in toPayOrders" :key="order.id" class="bg-card border border-border rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
               <!-- Cabecera: Mesa y Total -->
               <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50">
-                <h4 class="font-bold text-lg">Mesa {{ order.table_number }}</h4>
-                <span class="font-bold text-green-600">{{ formatMoney(order.total) }}</span>
+                <h4 class="font-bold text-lg">{{ order.table_display || `Mesa ${order.table_number}` }}</h4>
+                <span class="font-bold text-green-600">{{ order.formatted_total || formatMoney(order.total) }}</span>
               </div>
 
               <!-- Cuerpo: Cliente y Mesero -->
@@ -327,7 +369,7 @@ const tabs = [
             <!-- Encabezado -->
             <div class="p-3 border-b border-border/50 flex justify-between items-center bg-muted/20">
               <span class="font-bold text-foreground">
-                {{ formatId(order.id) }} - Mesa {{ order.table_number }}
+                {{ formatId(order.id) }} - {{ order.table_display || `Mesa ${order.table_number}` }}
               </span>
               <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border"
                 :class="getAreaName(order).toLowerCase().includes('terraza') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-blue-100 text-blue-700 border-blue-200'">
@@ -349,7 +391,7 @@ const tabs = [
                 </div>
                 <div class="text-right">
                   <p class="text-xl font-bold" :class="order.status === 'paid' ? 'text-green-600' : 'text-foreground'">
-                    {{ formatMoney(order.total) }}
+                    {{ order.formatted_total || formatMoney(order.total) }}
                   </p>
                 </div>
               </div>
@@ -375,6 +417,106 @@ const tabs = [
       :is-open="isDetailModalOpen" 
       @close="closeDetailModal" 
     />
+
+    <!-- Modal de Confirmación de Cobro -->
+    <BaseModal 
+      :is-open="showConfirmModal" 
+      title="Confirmar Cobro" 
+      @close="cancelPayment"
+    >
+      <div v-if="orderToPay" class="space-y-4">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-primary/10 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <Printer class="w-8 h-8 text-primary" />
+          </div>
+          <h3 class="text-lg font-bold text-foreground mb-2">
+            ¿Confirmar cobro de este pedido?
+          </h3>
+          <div class="space-y-2 text-sm text-muted-foreground">
+            <p>
+              <span class="font-semibold text-foreground">Mesa:</span> 
+              {{ orderToPay.table_display || orderToPay.table_number }}
+            </p>
+            <p>
+              <span class="font-semibold text-foreground">Cliente:</span> 
+              {{ getCustomerName(orderToPay) }}
+            </p>
+            <p class="text-2xl font-bold text-primary mt-3">
+              {{ orderToPay.formatted_total || formatMoney(orderToPay.total) }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <button 
+          @click="cancelPayment" 
+          class="px-4 py-2 border border-input rounded-lg font-medium text-sm hover:bg-muted transition-colors"
+        >
+          Cancelar
+        </button>
+        <button 
+          @click="confirmPayment" 
+          class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-opacity flex items-center gap-2"
+        >
+          <Printer class="w-4 h-4" />
+          Confirmar Cobro
+        </button>
+      </template>
+    </BaseModal>
+
+    <!-- Modal de Confirmación de Cancelación -->
+    <BaseModal 
+      :is-open="showCancelModal" 
+      title="Cancelar Pedido" 
+      @close="closeCancelModal"
+    >
+      <div v-if="orderToCancel" class="space-y-4">
+        <div class="text-center">
+          <div class="w-16 h-16 bg-destructive/10 rounded-full mx-auto mb-4 flex items-center justify-center">
+            <X class="w-8 h-8 text-destructive" />
+          </div>
+          <h3 class="text-lg font-bold text-foreground mb-2">
+            ¿Cancelar este pedido?
+          </h3>
+          <div class="space-y-2 text-sm text-muted-foreground">
+            <p>
+              Esta acción <span class="font-bold text-destructive">no se puede deshacer</span>.
+            </p>
+            <div class="p-3 bg-muted/50 rounded-lg space-y-1">
+              <p>
+                <span class="font-semibold text-foreground">Mesa:</span> 
+                {{ orderToCancel.table_display || orderToCancel.table_number }}
+              </p>
+              <p>
+                <span class="font-semibold text-foreground">Cliente:</span> 
+                {{ getCustomerName(orderToCancel) }}
+              </p>
+              <p>
+                <span class="font-semibold text-foreground">Total:</span> 
+                {{ orderToCancel.formatted_total || formatMoney(orderToCancel.total) }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <button 
+          @click="closeCancelModal" 
+          class="px-4 py-2 border border-input rounded-lg font-medium text-sm hover:bg-muted transition-colors"
+        >
+          Volver
+        </button>
+        <button 
+          @click="confirmCancel" 
+          class="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-bold text-sm hover:bg-destructive/90 transition-opacity flex items-center gap-2"
+        >
+          <X class="w-4 h-4" />
+          Sí, Cancelar
+        </button>
+      </template>
+    </BaseModal>
   </div>
 </template>
 

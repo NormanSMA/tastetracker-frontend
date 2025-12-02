@@ -100,7 +100,7 @@ onMounted(async () => {
   <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-bold text-slate-900 dark:text-white">Resumen del Día</h1>
+      <h1 class="text-3xl font-bold text-foreground">Resumen del Día</h1>
     </div>
 
     <!-- Summary Cards Row -->
@@ -111,8 +111,8 @@ onMounted(async () => {
           <DollarSign class="w-8 h-8" />
         </div>
         <div>
-          <p class="text-xs text-slate-500 font-medium dark:text-gray-400">Ventas de Hoy</p>
-          <h3 class="text-xl font-bold text-slate-900 dark:text-white">{{ formatMoney(summaryData.total_sales || 0) }}</h3>
+          <p class="text-xs text-muted-foreground font-medium">Ventas de Hoy</p>
+          <h3 class="text-xl font-bold text-foreground">{{ formatMoney(summaryData.total_sales || 0) }}</h3>
         </div>
       </div>
       
@@ -122,8 +122,8 @@ onMounted(async () => {
           <ShoppingBag class="w-8 h-8" />
         </div>
         <div>
-          <p class="text-xs text-slate-500 font-medium dark:text-gray-400">Pedidos Totales</p>
-          <h3 class="text-xl font-bold text-slate-900 dark:text-white">{{ summaryData.total_orders || 0 }}</h3>
+          <p class="text-xs text-muted-foreground font-medium">Pedidos Totales</p>
+          <h3 class="text-xl font-bold text-foreground">{{ summaryData.total_orders || 0 }}</h3>
         </div>
       </div>
     </div>
@@ -134,20 +134,20 @@ onMounted(async () => {
       <!-- Informe de Ventas -->
       <div class="bg-card p-6 rounded-lg shadow-sm border border-border">
         <div class="flex justify-between items-center mb-6">
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Informe de Ventas</h3>
+          <h3 class="text-lg font-bold text-foreground">Informe de Ventas</h3>
           
           <div class="flex bg-muted rounded-lg p-1 text-xs">
             <button 
               @click="salesRange = 'week'; fetchSalesChart()" 
               class="px-3 py-1 rounded transition-all font-medium"
-              :class="salesRange === 'week' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              :class="salesRange === 'week' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
             >
               Semana
             </button>
             <button 
               @click="salesRange = 'month'; fetchSalesChart()" 
               class="px-3 py-1 rounded transition-all font-medium"
-              :class="salesRange === 'month' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              :class="salesRange === 'month' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
             >
               Mes
             </button>
@@ -162,27 +162,27 @@ onMounted(async () => {
       <!-- Categorías Más Vendidas -->
       <div class="bg-card p-6 rounded-lg shadow-sm border border-border">
         <div class="flex justify-between items-center mb-6">
-          <h3 class="text-lg font-bold text-slate-900 dark:text-white">Categorías Más Vendidas</h3>
+          <h3 class="text-lg font-bold text-foreground">Categorías Más Vendidas</h3>
           
           <div class="flex bg-muted rounded-lg p-1 text-xs">
             <button 
               @click="categoryRange = 'today'; fetchCategoryChart()" 
               class="px-3 py-1 rounded transition-all font-medium"
-              :class="categoryRange === 'today' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              :class="categoryRange === 'today' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
             >
               Hoy
             </button>
             <button 
               @click="categoryRange = 'week'; fetchCategoryChart()" 
               class="px-3 py-1 rounded transition-all font-medium"
-              :class="categoryRange === 'week' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              :class="categoryRange === 'week' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
             >
               Semana
             </button>
             <button 
               @click="categoryRange = 'month'; fetchCategoryChart()" 
               class="px-3 py-1 rounded transition-all font-medium"
-              :class="categoryRange === 'month' ? 'bg-primary text-white shadow-sm' : 'text-slate-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'"
+              :class="categoryRange === 'month' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'"
             >
               Mes
             </button>
@@ -200,7 +200,7 @@ onMounted(async () => {
       
       <!-- Top 5 Platillos -->
       <div class="bg-card p-6 rounded-lg shadow-sm border border-border">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Top 5 Platillos</h3>
+        <h3 class="text-lg font-bold text-foreground mb-4">Top 5 Platillos</h3>
         <div class="space-y-4">
           <div 
             v-for="(product, index) in (summaryData.top_products || [])" 
@@ -208,8 +208,8 @@ onMounted(async () => {
             class="flex items-center justify-between"
           >
             <div class="flex items-center gap-3">
-              <span class="text-slate-500 font-bold dark:text-gray-400">#{{ index + 1 }}</span>
-              <span class="text-slate-900 dark:text-gray-200">{{ product.name }}</span>
+              <span class="text-muted-foreground font-bold">#{{ index + 1 }}</span>
+              <span class="text-foreground">{{ product.name }}</span>
             </div>
             <span class="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-bold">
               {{ product.quantity }} uds
@@ -223,7 +223,7 @@ onMounted(async () => {
 
       <!-- Mejores Meseros -->
       <div v-if="summaryData.top_waiters && summaryData.top_waiters.length > 0" class="bg-card p-6 rounded-lg shadow-sm border border-border">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Mejores Meseros</h3>
+        <h3 class="text-lg font-bold text-foreground mb-4">Mejores Meseros</h3>
         <div class="space-y-4">
           <div 
             v-for="(waiter, index) in (summaryData.top_waiters || [])" 
@@ -240,11 +240,11 @@ onMounted(async () => {
               />
               <div 
                 v-else 
-                class="w-10 h-10 rounded-full bg-linear-to-br from-primary/80 to-primary flex items-center justify-center text-sm font-bold text-white shadow-sm"
+                class="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center text-sm font-bold text-primary-foreground shadow-sm"
               >
                 {{ waiter.name.charAt(0).toUpperCase() }}
               </div>
-              <span class="text-slate-900 text-sm font-medium dark:text-gray-200">{{ waiter.name }}</span>
+              <span class="text-foreground text-sm font-medium">{{ waiter.name }}</span>
             </div>
             <span class="text-orange-500 font-bold text-sm">
               {{ formatMoney(waiter.sales || waiter.total_sales || 0) }}

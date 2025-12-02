@@ -12,6 +12,8 @@ export interface CartItem {
 export interface Area {
   id: number;
   name: string;
+  prefix?: string;        // Prefijo del área (ej: "T", "S", "B")
+  total_tables?: number;  // Cantidad total de mesas en esa área
 }
 
 export const useCartStore = defineStore('cart', () => {

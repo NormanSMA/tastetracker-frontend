@@ -39,13 +39,9 @@ export const useAuthStore = defineStore('auth', () => {
         if (!token.value) return;
         try {
             const response = await api.get('/user-profile');
-            console.log('Respuesta completa de /user-profile:', response.data);
             
             // Manejar diferentes estructuras de respuesta
             user.value = response.data.user || response.data.data || response.data;
-            
-            console.log('Usuario guardado en store:', user.value);
-            console.log('photo_url:', user.value?.photo_url);
         } catch (error) {
             console.error('Error fetching user:', error);
             logout();

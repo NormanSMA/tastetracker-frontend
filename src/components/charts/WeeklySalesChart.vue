@@ -62,8 +62,15 @@ onMounted(() => {
 });
 
 const chartOptions = computed(() => {
-  const textColor = isDark.value ? '#E5E7EB' : '#374151'; // gray-200 : gray-700
-  const gridColor = isDark.value ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+  // Get foreground color from CSS variable and convert to RGB format
+  // Create a temporary element to compute the actual color
+  const tempEl = document.createElement('div');
+  tempEl.style.color = 'oklch(var(--foreground))';
+  document.body.appendChild(tempEl);
+  const textColor = window.getComputedStyle(tempEl).color;
+  document.body.removeChild(tempEl);
+  
+  const gridColor = isDark.value ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
 
   return {
     responsive: true,
