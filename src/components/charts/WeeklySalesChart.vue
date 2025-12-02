@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import {
   Chart as ChartJS,
   Title,
@@ -12,14 +13,31 @@ import { Bar } from 'vue-chartjs'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
-defineProps<{
+const props = defineProps<{
   data: {
-    labels: string[]
-    datasets: { label: string; data: number[]; backgroundColor: string }[]
+    labels?: string[]
+    datasets?: { label?: string; data?: number[]; backgroundColor?: string }[]
   }
 }>()
 
-const options = {
+// Computed data with strict validation
+const chartData = computed(() => {
+  // Validación estricta
+  if (!props.data || !props.data.labels || !props.data.datasets || !Array.isArray(props.data.labels)) {
+    return { labels: [], datasets: [] };
+  }
+  return {
+    labels: props.data.labels,
+    datasets: props.data.datasets
+  };
+});
+
+// Check if we have valid data to display
+const hasValidData = computed(() => {
+  return chartData.value.labels.length > 0 && chartData.value.datasets.length > 0;
+});
+
+const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -56,6 +74,9 @@ const options = {
 
 <template>
   <div class="h-[300px] w-full">
-    <Bar :data="data" :options="options" />
+    <Bar v-if="hasValidData" :data="chartData" :options="chartOptions" />
+    <div v-else class="h-full flex items-center justify-center text-muted-foreground">
+      Cargando gráfico...
+    </div>
   </div>
 </template>

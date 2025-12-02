@@ -31,13 +31,29 @@ export const useOrderStore = defineStore('orders', () => {
   }
 
   async function updateOrderStatus(orderId: number, newStatus: string) {
+    // Find the order and store old status for rollback
+    const order = orders.value.find(o => o.id === orderId);
+    if (!order) {
+      console.error('Order not found:', orderId);
+      return false;
+    }
+
+    const oldStatus = order.status;
+
     try {
+      // OPTIMISTIC UPDATE: Update local state immediately
+      order.status = newStatus;
+
+      // Make API call
       await api.patch(`/orders/${orderId}/status`, { status: newStatus });
-      // Actualización optimista o recarga
-      await fetchOrders(); 
+      
       return true;
     } catch (e) {
-      console.error(e);
+      // ROLLBACK: Revert to old status on error
+      console.error('Error updating order status:', e);
+      order.status = oldStatus;
+      
+      // Re-throw to allow UI to show error toast
       throw e;
     }
   }

@@ -161,7 +161,11 @@ const menuItems = [
       </header>
 
       <div class="flex-1 overflow-auto p-4 md:p-6 relative w-full">
-        <router-view :key="$route.fullPath" />
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" :key="route.fullPath" />
+          </transition>
+        </router-view>
       </div>
     </main>
   </div>
@@ -178,5 +182,15 @@ const menuItems = [
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: var(--border);
   border-radius: 20px;
+}
+
+/* Transición de fade para router-view */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

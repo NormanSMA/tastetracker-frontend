@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import api from '@/api/axios';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
 export interface Product {
   id: number;
@@ -23,6 +23,19 @@ export const useProductStore = defineStore('products', () => {
   const products = ref<Product[]>([]);
   const categories = ref<Category[]>([]);
   const isLoading = ref(false);
+  
+  // Filtering state
+  const selectedCategory = ref<number | 'all'>('all');
+  const searchQuery = ref('');
+  
+  // Computed filtered products
+  const filteredProducts = computed(() => {
+    return products.value.filter(product => {
+      const matchesCategory = selectedCategory.value === 'all' || product.category_id === selectedCategory.value;
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  });
 
   async function fetchMenu() {
     isLoading.value = true;
@@ -84,5 +97,27 @@ export const useProductStore = defineStore('products', () => {
      }
   }
 
-  return { products, categories, isLoading, fetchMenu, createProduct, updateProduct, deleteProduct };
+  // Actions for filtering
+  function setCategory(categoryId: number | 'all') {
+    selectedCategory.value = categoryId;
+  }
+  
+  function setSearchQuery(query: string) {
+    searchQuery.value = query;
+  }
+
+  return { 
+    products, 
+    categories, 
+    isLoading, 
+    selectedCategory,
+    searchQuery,
+    filteredProducts,
+    fetchMenu, 
+    createProduct, 
+    updateProduct, 
+    deleteProduct,
+    setCategory,
+    setSearchQuery
+  };
 });

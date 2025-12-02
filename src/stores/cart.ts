@@ -87,17 +87,21 @@ export const useCartStore = defineStore('cart', () => {
 
     isSending.value = true;
     try {
-      const payload = {
-        area_id: areaId.value, // Ahora aseguramos que no sea null
+      const payload: any = {
+        area_id: areaId.value,
         table_number: tableNumber.value,
         order_type: 'dine_in',
-        notes: customerName.value ? `Cliente: ${customerName.value}` : null,
         items: items.value.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
           notes: item.notes
         }))
       };
+
+      // Agregar guest_name solo si hay un customerName
+      if (customerName.value) {
+        payload.guest_name = customerName.value;
+      }
 
       await api.post('/orders', payload);
       clearCart();
