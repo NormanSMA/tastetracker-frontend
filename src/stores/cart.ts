@@ -81,10 +81,9 @@ export const useCartStore = defineStore('cart', () => {
   async function sendOrder() {
     if (items.value.length === 0) return;
     
-    // VALIDACIÓN PREVIA
+    // VALIDACIÓN PREVIA - Ahora la maneja el componente
     if (!areaId.value) {
-      alert('Error: No se ha seleccionado una zona/área.');
-      return;
+      throw new Error('No se ha seleccionado una zona/área');
     }
 
     isSending.value = true;

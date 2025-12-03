@@ -3,6 +3,7 @@ import { ref, onMounted, reactive, computed } from 'vue';
 import { useUserStore, type User } from '@/stores/users';
 import { Plus, Search, Mail, Phone, Shield, Pencil, Trash2, Upload, Loader2 } from 'lucide-vue-next';
 import BaseModal from '@/components/common/BaseModal.vue';
+import { toast } from 'vue-sonner';
 
 const userStore = useUserStore();
 const searchQuery = ref('');
@@ -76,15 +77,41 @@ const handleSubmit = async () => {
         if (form.phone) formData.append('phone', form.phone);
         if (form.photo) formData.append('photo', form.photo);
 
-        if (isEditing.value) await userStore.updateUser(form.id, formData);
-        else await userStore.createUser(formData);
+        if (isEditing.value) {
+            await userStore.updateUser(form.id, formData);
+            toast.success('Usuario actualizado correctamente');
+        } else {
+            await userStore.createUser(formData);
+            toast.success('Usuario creado correctamente');
+        }
         isModalOpen.value = false;
-    } catch (e) { alert('Error al guardar usuario'); }
+    } catch (e: any) { 
+        toast.error('Error al guardar usuario', {
+            description: e.response?.data?.message || 'Inténtalo de nuevo'
+        });
+    }
     finally { isSubmitting.value = false; }
 };
 
 const handleDelete = async (id: number) => {
-    if(confirm('¿Eliminar este usuario?')) await userStore.deleteUser(id);
+    toast.warning('¿Eliminar este usuario?', {
+        description: 'Esta acción no se puede deshacer',
+        action: {
+            label: 'Eliminar',
+            onClick: async () => {
+                try {
+                    await userStore.deleteUser(id);
+                    toast.success('Usuario eliminado correctamente');
+                } catch (e) {
+                    toast.error('No se pudo eliminar el usuario');
+                }
+            }
+        },
+        cancel: {
+            label: 'Cancelar',
+            onClick: () => {}
+        }
+    });
 };
 </script>
 
