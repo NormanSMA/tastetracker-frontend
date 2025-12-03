@@ -11,6 +11,7 @@ const router = useRouter();
 const email = ref('');
 const password = ref('');
 const showPassword = ref(false);
+const rememberMe = ref(false);
 const isLoading = ref(false);
 const errorMessage = ref('');
 
@@ -21,7 +22,8 @@ const handleLogin = async () => {
   try {
     await authStore.login({
       email: email.value,
-      password: password.value
+      password: password.value,
+      rememberMe: rememberMe.value
     });
     router.push('/dashboard');
   } catch (error: any) {
@@ -42,7 +44,7 @@ const handleLogin = async () => {
   <div class="min-h-screen flex relative overflow-hidden">
     
     <!-- Lado Izquierdo: Imagen de Fondo con Features -->
-    <div class="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-orange-500 to-orange-700">
+    <div class="hidden lg:flex lg:w-1/2 relative bg-linear-to-br from-orange-500 to-orange-700">
       <!-- Imagen de Fondo -->
       <div class="absolute inset-0 opacity-30">
         <img src="/fondo-login.jpg" alt="Restaurant" class="w-full h-full object-cover" />
@@ -76,7 +78,7 @@ const handleLogin = async () => {
         <div class="space-y-4">
           <!-- Gestión Rápida -->
           <div class="flex items-start gap-3 group">
-            <div class="w-11 h-11 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+            <div class="w-11 h-11 bg-linear-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
               <Zap class="w-5 h-5 text-white" />
             </div>
             <div>
@@ -87,7 +89,7 @@ const handleLogin = async () => {
 
           <!-- Control Total -->
           <div class="flex items-start gap-3 group">
-            <div class="w-11 h-11 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+            <div class="w-11 h-11 bg-linear-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
               <BarChart3 class="w-5 h-5 text-white" />
             </div>
             <div>
@@ -98,7 +100,7 @@ const handleLogin = async () => {
 
           <!-- Seguridad Garantizada -->
           <div class="flex items-start gap-3 group">
-            <div class="w-11 h-11 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
+            <div class="w-11 h-11 bg-linear-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg group-hover:scale-110 transition-transform">
               <Shield class="w-5 h-5 text-white" />
             </div>
             <div>
@@ -111,9 +113,9 @@ const handleLogin = async () => {
         <!-- Footer -->
         <div class="flex items-center gap-2 pt-6 border-t border-white/20">
           <div class="flex -space-x-2">
-            <div class="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-full border-2 border-white"></div>
-            <div class="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full border-2 border-white"></div>
-            <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-teal-500 rounded-full border-2 border-white"></div>
+            <div class="w-10 h-10 bg-linear-to-br from-orange-400 to-red-500 rounded-full border-2 border-white"></div>
+            <div class="w-10 h-10 bg-linear-to-br from-purple-400 to-blue-500 rounded-full border-2 border-white"></div>
+            <div class="w-10 h-10 bg-linear-to-br from-green-400 to-teal-500 rounded-full border-2 border-white"></div>
           </div>
           <p class="text-white/80 text-xs">Más de 500+ restaurantes confían en nosotros</p>
         </div>
@@ -194,11 +196,29 @@ const handleLogin = async () => {
 
 
 
+          <!-- Remember Me & Forgot Password -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <input 
+                v-model="rememberMe" 
+                type="checkbox" 
+                id="remember" 
+                class="w-4 h-4 rounded border-input text-primary focus:ring-primary/20"
+              />
+              <label for="remember" class="text-sm text-foreground select-none cursor-pointer">
+                Mantener sesión iniciada
+              </label>
+            </div>
+            <a href="#" class="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
+
           <!-- Submit Button -->
           <button 
             type="submit" 
             :disabled="isLoading" 
-            class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
+            class="w-full bg-linear-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]"
           >
             <Loader2 v-if="isLoading" class="w-5 h-5 animate-spin" />
             <span>{{ isLoading ? 'Ingresando...' : 'Iniciar sesión' }}</span>

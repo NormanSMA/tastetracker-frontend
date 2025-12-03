@@ -69,6 +69,10 @@ export const useCartStore = defineStore('cart', () => {
       // CORRECCIÓN: Laravel devuelve { data: [...] }, así que accedemos a data.data
       areas.value = response.data.data;
       
+      // DEBUG: Ver qué datos devuelve el backend
+      console.log('📍 Áreas cargadas desde el backend:', areas.value);
+      console.log('📍 Primera área:', areas.value[0]);
+      
       // Seleccionar el primero por defecto si existe
       if (areas.value.length > 0) {
         areaId.value = areas.value[0].id;

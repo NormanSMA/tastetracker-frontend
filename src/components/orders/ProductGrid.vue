@@ -58,11 +58,14 @@ const formatMoney = (val: number) => 'C$ ' + Number(val).toFixed(2).replace(/\d(
             <img 
               v-if="product.image_url" 
               :src="product.image_url" 
+              :alt="product.name"
+              loading="lazy"
+              @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
               class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
             />
             <Utensils 
-              v-else 
-              class="w-10 h-10 m-auto text-muted-foreground opacity-30 absolute inset-0" 
+              class="w-10 h-10 m-auto text-muted-foreground opacity-30 absolute inset-0 pointer-events-none" 
+              :class="product.image_url ? 'hidden' : 'flex items-center justify-center'"
             />
             <div class="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full font-bold backdrop-blur-sm">
               {{ product.category_name }}

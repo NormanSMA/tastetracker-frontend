@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useOrderStore } from '@/stores/orders';
 import { useAuthStore } from '@/stores/auth';
-import { Clock, ChefHat, Utensils, History, Printer, ArrowRight, X, User } from 'lucide-vue-next';
+import { Clock, ChefHat, Utensils, History, Printer, ArrowRight, X, User, Download } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import OrderDetailModal from '@/components/orders/OrderDetailModal.vue';
 import BaseModal from '@/components/common/BaseModal.vue';
@@ -80,6 +80,20 @@ const getWaiterName = (order: any) => order.waiter_name || order.waiter?.name ||
 const getAreaName = (order: any) => order.area?.name || order.area_name || 'Salón';
 const formatId = (id: number) => `#${id.toString().padStart(4, '0')}`;
 
+// Obtener identificador completo de mesa con área
+const getTableDisplay = (order: any) => {
+  if (order.table_identifier) {
+    const areaName = getAreaName(order);
+    return `Mesa ${order.table_identifier} - ${areaName}`;
+  }
+  return order.table_display || `Mesa ${order.table_number}`;
+};
+
+// Descargar factura PDF
+const handleDownloadInvoice = async (orderId: number) => {
+  await orderStore.downloadInvoice(orderId);
+};
+
 const handleNextStep = async (order: any) => {
   let next = '';
   if (order.status === 'pending') next = 'preparing';
@@ -99,7 +113,7 @@ const confirmPayment = async () => {
   
   try {
     await orderStore.updateOrderStatus(orderToPay.value.id, 'paid');
-    toast.success(`Pedido de Mesa ${orderToPay.value.table_display || orderToPay.value.table_number} cobrado correctamente`);
+    toast.success(`Pedido de ${getTableDisplay(orderToPay.value)} cobrado correctamente`);
     showConfirmModal.value = false;
     orderToPay.value = null;
   } catch (error) {
@@ -183,7 +197,7 @@ const tabs = [
             <div v-for="order in pendingOrders" :key="order.id" class="bg-card border border-border rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow">
               <!-- Cabecera: Mesa y Total -->
               <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50">
-                <h4 class="font-bold text-lg">{{ order.table_display || `Mesa ${order.table_number}` }}</h4>
+                <h4 class="font-bold text-lg">{{ getTableDisplay(order) }}</h4>
                 <span class="font-bold text-green-600">{{ order.formatted_total || formatMoney(order.total) }}</span>
               </div>
               
@@ -244,7 +258,7 @@ const tabs = [
               <!-- Cabecera: Mesa y Total -->
               <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50 pl-2">
                 <div class="flex items-center gap-2">
-                  <h4 class="font-bold text-lg">{{ order.table_display || `Mesa ${order.table_number}` }}</h4>
+                  <h4 class="font-bold text-lg">{{ getTableDisplay(order) }}</h4>
                   <span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded" :class="order.status === 'preparing' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">
                     {{ order.status === 'preparing' ? 'Cocinando' : 'Listo' }}
                   </span>
@@ -305,7 +319,7 @@ const tabs = [
             <div v-for="order in toPayOrders" :key="order.id" class="bg-card border border-border rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
               <!-- Cabecera: Mesa y Total -->
               <div class="flex justify-between items-center mb-2 pb-2 border-b border-border/50">
-                <h4 class="font-bold text-lg">{{ order.table_display || `Mesa ${order.table_number}` }}</h4>
+                <h4 class="font-bold text-lg">{{ getTableDisplay(order) }}</h4>
                 <span class="font-bold text-green-600">{{ order.formatted_total || formatMoney(order.total) }}</span>
               </div>
 
@@ -369,7 +383,7 @@ const tabs = [
             <!-- Encabezado -->
             <div class="p-3 border-b border-border/50 flex justify-between items-center bg-muted/20">
               <span class="font-bold text-foreground">
-                {{ formatId(order.id) }} - {{ order.table_display || `Mesa ${order.table_number}` }}
+                {{ formatId(order.id) }} - {{ order.table_identifier || `Mesa ${order.table_number}` }}
               </span>
               <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border"
                 :class="getAreaName(order).toLowerCase().includes('terraza') ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-blue-100 text-blue-700 border-blue-200'">
@@ -398,12 +412,21 @@ const tabs = [
             </div>
 
             <!-- Pie -->
-            <div class="p-3 pt-0 flex justify-between items-center mt-auto">
+            <div class="p-3 pt-0 flex justify-between items-center gap-2 mt-auto">
               <span class="text-xs px-2 py-1 rounded font-bold uppercase" :class="order.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
                 {{ order.status === 'paid' ? 'Pagado' : 'Cancelado' }}
               </span>
-              <span class="text-xs text-blue-500 group-hover:underline font-medium">
-                Click para ver detalle
+              <button 
+                v-if="order.status === 'paid'"
+                @click.stop="handleDownloadInvoice(order.id)" 
+                class="flex items-center gap-1 text-xs px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-medium"
+                title="Descargar factura"
+              >
+                <Download class="w-3 h-3" />
+                Factura
+              </button>
+              <span v-else class="text-xs text-blue-500 group-hover:underline font-medium">
+                Ver detalle
               </span>
             </div>
           </div>
@@ -435,7 +458,7 @@ const tabs = [
           <div class="space-y-2 text-sm text-muted-foreground">
             <p>
               <span class="font-semibold text-foreground">Mesa:</span> 
-              {{ orderToPay.table_display || orderToPay.table_number }}
+              {{ getTableDisplay(orderToPay) }}
             </p>
             <p>
               <span class="font-semibold text-foreground">Cliente:</span> 
@@ -486,7 +509,7 @@ const tabs = [
             <div class="p-3 bg-muted/50 rounded-lg space-y-1">
               <p>
                 <span class="font-semibold text-foreground">Mesa:</span> 
-                {{ orderToCancel.table_display || orderToCancel.table_number }}
+                {{ getTableDisplay(orderToCancel) }}
               </p>
               <p>
                 <span class="font-semibold text-foreground">Cliente:</span> 

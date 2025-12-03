@@ -157,8 +157,20 @@ const handleDelete = async (id: number) => {
     <div v-else-if="filteredProducts.length > 0" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
       <div v-for="(product, index) in filteredProducts" :key="product.id" class="group bg-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-all duration-300 animate-entry" :style="{ animationDelay: `${index * 50}ms` }">
         <div class="h-32 bg-muted relative overflow-hidden">
-          <img v-if="product.image_url" :src="product.image_url" :alt="product.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          <div v-else class="w-full h-full flex items-center justify-center text-muted-foreground"><Filter class="w-8 h-8 opacity-20" /></div>
+          <img 
+            v-if="product.image_url" 
+            :src="product.image_url" 
+            :alt="product.name" 
+            loading="lazy"
+            @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+          />
+          <div 
+            class="w-full h-full flex items-center justify-center text-muted-foreground pointer-events-none absolute inset-0"
+            :class="product.image_url ? 'hidden' : 'flex'"
+          >
+            <Filter class="w-8 h-8 opacity-20" />
+          </div>
           <div class="absolute top-2 right-2 bg-background/90 backdrop-blur px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">{{ product.category_name }}</div>
         </div>
         <div class="p-3">

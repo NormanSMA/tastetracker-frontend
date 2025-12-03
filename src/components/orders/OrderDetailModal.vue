@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { X, Calendar, User, DollarSign } from 'lucide-vue-next';
+import { X, Calendar, User, DollarSign, Download } from 'lucide-vue-next';
+import { useOrderStore } from '@/stores/orders';
 
 interface OrderItem {
   product_name: string;
@@ -10,19 +11,19 @@ interface OrderItem {
 
 interface Order {
   id: number;
-  table_number: string;
-  area?: { name: string };
+  table_number: number | string;
+  table_identifier: string;
+  area?: { id: number; name: string; prefix: string; description?: string };
   area_name?: string;
   items: OrderItem[];
   total: number;
   status: string;
   created_at: string;
-  waiter?: { name: string };
+  waiter?: { id: number; name: string };
   waiter_name?: string;
   guest_name?: string;
-  // Nuevos campos enriquecidos del backend
+  customer?: { id: number; name: string };
   customer_name?: string;
-  table_display?: string;
   formatted_total?: string;
 }
 
@@ -53,6 +54,23 @@ const formatDate = (isoString: string) => {
 const getWaiterName = () => props.order?.waiter?.name || props.order?.waiter_name || 'N/A';
 const getAreaName = () => props.order?.area?.name || props.order?.area_name || 'N/A';
 const getCustomerName = () => props.order?.customer_name || 'N/A';
+
+// Obtener identificador completo de mesa
+const getTableDisplay = () => {
+  if (!props.order) return '';
+  if (props.order.table_identifier) {
+    const areaName = getAreaName();
+    return `Mesa ${props.order.table_identifier} - ${areaName}`;
+  }
+  return `Mesa ${props.order.table_number}`;
+};
+
+// Descargar factura
+const orderStore = useOrderStore();
+const handleDownloadInvoice = async () => {
+  if (!props.order) return;
+  await orderStore.downloadInvoice(props.order.id);
+};
 </script>
 
 <template>
@@ -73,7 +91,7 @@ const getCustomerName = () => props.order?.customer_name || 'N/A';
             <!-- Header -->
             <div class="flex items-center justify-between p-5 border-b border-border">
               <h3 class="text-lg font-bold text-foreground">
-                Pedido #{{ order.id }} - {{ order.table_display || `Mesa ${order.table_number}` }}
+                Pedido #{{ order.id }} - {{ getTableDisplay() }}
               </h3>
               <button 
                 @click="emit('close')" 
@@ -109,7 +127,7 @@ const getCustomerName = () => props.order?.customer_name || 'N/A';
                 <div class="flex justify-between items-center">
                   <div>
                     <p class="text-xs text-muted-foreground">Ubicación</p>
-                    <p class="font-bold text-foreground">{{ getAreaName() }}</p>
+                    <p class="font-bold text-foreground">{{ getTableDisplay() }}</p>
                   </div>
                   <div v-if="getCustomerName() !== 'N/A'" class="text-right">
                     <p class="text-xs text-muted-foreground">Cliente</p>
@@ -169,8 +187,17 @@ const getCustomerName = () => props.order?.customer_name || 'N/A';
 
                 <div class="flex gap-3">
                   <button 
+                    v-if="order.status === 'paid'"
+                    @click="handleDownloadInvoice" 
+                    class="flex-1 px-4 py-3.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-bold text-base transition-colors shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <Download class="w-4 h-4" />
+                    Descargar Factura
+                  </button>
+                  <button 
                     @click="emit('close')" 
-                    class="w-full px-4 py-3.5 border border-input hover:bg-muted rounded-xl font-bold text-base transition-colors shadow-sm"
+                    :class="order.status === 'paid' ? 'px-4' : 'w-full px-4'"
+                    class="py-3.5 border border-input hover:bg-muted rounded-xl font-bold text-base transition-colors shadow-sm"
                   >
                     Cerrar
                   </button>

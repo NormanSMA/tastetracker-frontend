@@ -1,20 +1,49 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '@/api/axios';
+import { toast } from 'vue-sonner';
+
+export interface Area {
+  id: number;
+  name: string;
+  prefix: string;
+  total_tables: number;
+  description?: string;
+}
+
+export interface OrderItem {
+  product_name: string;
+  quantity: number;
+  notes?: string;
+  unit_price: number;
+}
 
 export interface Order {
   id: number;
-  table_number: string;
+  table_number: number | string;
+  table_identifier: string; // Identificador completo: "S3", "T5", etc.
   status: string;
+  order_type: string;
   total: number;
-  waiter: string; // nombre del mesero
-  area: string;
-  items: Array<{ product_name: string; quantity: number; notes: string }>;
-  created_at: string;
   notes?: string;
-  // Nuevos campos enriquecidos del backend
-  customer_name?: string; // Nombre unificado del cliente (registrado o invitado)
-  table_display?: string; // Mesa formateada con prefijo (ej: "T#5", "S#2")
+  created_at: string;
+  
+  // Área completa con toda la información
+  area: Area;
+  
+  // Items del pedido
+  items: OrderItem[];
+  
+  // Mesero (puede venir como objeto o string)
+  waiter?: { id: number; name: string };
+  waiter_name?: string;
+  
+  // Cliente (registrado o invitado)
+  customer?: { id: number; name: string };
+  guest_name?: string;
+  customer_name?: string; // Nombre unificado
+  
+  // Campos opcionales formateados del backend
   formatted_total?: string; // Total formateado con moneda (ej: "C$ 150.00")
 }
 
@@ -62,5 +91,28 @@ export const useOrderStore = defineStore('orders', () => {
     }
   }
 
-  return { orders, isLoading, fetchOrders, updateOrderStatus };
+  async function downloadInvoice(orderId: number) {
+    try {
+      const response = await api.get(`/orders/${orderId}/invoice`, {
+        responseType: 'blob'
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `factura-${orderId}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Factura descargada correctamente');
+      return true;
+    } catch (error) {
+      console.error('Error descargando factura:', error);
+      toast.error('Error al descargar la factura');
+      return false;
+    }
+  }
+
+  return { orders, isLoading, fetchOrders, updateOrderStatus, downloadInvoice };
 });
