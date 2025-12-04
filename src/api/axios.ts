@@ -11,7 +11,15 @@ const api = axios.create({
 
 // Interceptor para inyectar token
 api.interceptors.request.use(config => {
-    const token = localStorage.getItem('token');
+    // 1. Buscar en localStorage (si marcó "Mantener sesión")
+    let token = localStorage.getItem('token');
+    
+    // 2. Si no está, buscar en sessionStorage (si NO marcó)
+    if (!token) {
+        token = sessionStorage.getItem('token');
+    }
+
+    // 3. Si existe, inyectarlo
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
